@@ -1,0 +1,6 @@
+venv
+venv/
+/venv/
+/venv
+excel_data/TC-data.xlsx
+/excel_data/TC-data.xlsx
