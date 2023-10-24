@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import messagebox
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
@@ -16,6 +17,9 @@ chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
 paused_time_total = 0
 paused_at = None
+
+instruction_frame = None
+instruction_entry = None
 
 driver = webdriver.Chrome(options=chrome_options)
 actions = ActionChains(driver)
