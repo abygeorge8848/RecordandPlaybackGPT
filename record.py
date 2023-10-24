@@ -190,3 +190,4 @@ resume_btn = tk.Button(button_frame, text="Resume", command=resume_recording, wi
 resume_btn.grid(row=1, column=1, padx=5, pady=(10, 0))
 
 root.mainloop()
+
