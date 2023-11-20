@@ -1,0 +1,82 @@
+prompt = (f"""
+
+    The below content gives information about an XML framework named PAF. Use that information to create the PAF code for the user query  
+    Some attributes for each tag will be given. If an attribute is not given then please fill the attribute value,  
+    with an appropriate value according to the attribute description. In case direct PAF code is given, then you can
+    directly use it along with the rest of the given input. Only return the PAF code in the correct syntax and format.
+
+              PAF MANUAL 
+              ----------
+              Every set of set instructions must be enclosed in an activity tag :
+              <activity id="activity_name">
+               -
+               -
+               -
+              </activity>
+            
+              The activity can be named anything. Simply replace the 'activity_name' in the id attribute 
+              with an appropriate name which describes what the activity is doing.
+              
+              Now the content inside the activity tag would be the individual functionality. Each functionality
+              be a simple tag like <click xpath=""></click>, <input xpath="" value=""></input> which form the
+              building blocks of PAF. Now let us explore some PAF tags with their corresponding functionality.
+
+              To do a click action :
+              <click xpath="xpath_value"></click>
+              Here the xpath attribute represents the xpath of the element you want to click on. 'Replace xpath_value'
+              with the xpath of the respective element.
+
+              To input some text into a textbox :
+              <input xpath="xpath_value" value="value_to_be_entered">
+              xpath attribute is the xpath of the textbox you want to enter your text in.
+              The value attribute represents the text you want to enter in the textfield.
+
+              To wait for a specified amount of time in ms :
+              <wait time="time_in_ms"></wait>
+              Where the time attribute is the time in ms.
+
+              To wait till the page has loaded :
+              <WaitForPageLoad/>
+
+              To double click on an element :
+              <dblClick xpath="xpath_value"></dblClick>
+              The xpath attribute is the xpath of the element you need to double click on
+
+              To scroll to a particular element :
+              <scroll xpath="xpath_value"></scroll>
+              Where xpath is the element to be scrolled to.
+
+              To get the text of an element :
+              <getText xpath="xpath_value" variable="variable_name"></getText>
+              The xpath attribute represents the xpath of the element whose text is to be read.
+              The variable attribute represents an appropriate name for the variable in which the text is to be 
+              stored. If there are multiple variables in a single activity, each variable name must be unique.
+
+              Sometimes, some values will be required to be saved in order to be used in other tags like
+              validation, etc. This is the variable tag : 
+              <variable keyName="variable_name" value="variable_value">
+              Here, keyName represents an appropriate name for the variable with respect to its intent for storing
+              or the content stored in it. 
+              value attribute represents the value of the variable stored. When the value of another variable is to
+              be called, it can be called in an attribute in the format - attribute equals dollar sign open and close curly 
+              braces with the variable named enclosed in the open and closed curly braces.
+
+              To perform validations, the validation tag is used in conjunctions with a valGroup.
+              First, we need to define the appropriate valGroup which will be then referenced by the validation.
+              Let us look at the various valGroups - 
+                1. To validate that a certain element exists in the UI :
+                   <valGroup groupId="group-id">
+                      <validate xpath="xpath_value" exists="true/false" passMsg="An appropriate pass message to indicate why this is considered as a passed case" failMsg="A corresponding fail message to explain in case the condition fails">
+                   </valGroup
+                   groupId is an appropriate and unique name given to the valGroup     
+              
+                   Here xpath represents the xpath of the element we want to verify in the UI.
+                   exists can be equal to true or false, depending on whether we want to check if the element exists or not in the UI.
+                   passMsg should be the message in case the condition passes to explain what is being validated.
+                   failMsg should be the message in case the condition fails.
+
+              Include the valGroup outside of the <activity> ONLY. To call the valGroup within the activity, use the validation tag :
+                <validation valGroupIds="group-id">
+              Here, the valGroupIds must have the same group id as the vlGroup it is referencing.
+
+              """)

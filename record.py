@@ -92,7 +92,6 @@ def fetch_text_instruction():
         messagebox.showwarning("Action Recorder", "No element selected. Please try again.")
 
 
-
 def show_instruction_entry():
     global instruction_frame, instruction_entry
     instruction_frame = tk.Frame(frame, pady=10)
@@ -189,6 +188,7 @@ def start_recording():
     start_time = time.time() * 1000
     last_time = time.time() * 1000
 
+# Stop and show the records 
 def stop_and_show_records():
     global driver, last_time, paused_time_total
     if driver:
