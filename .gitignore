@@ -6,3 +6,8 @@ excel_data
 /excel_data
 /excel_data/
 excel_data/
+.env
+/.env
+env
+.env/
+
