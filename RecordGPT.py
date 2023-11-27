@@ -1,6 +1,6 @@
 # First part of the code: Recording User Actions on Web UI
-import spacy
-from spacy.matcher import Matcher
+#import spacy
+#from spacy.matcher import Matcher
 import tkinter as tk
 from tkinter import messagebox
 from selenium import webdriver
@@ -9,15 +9,27 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import TimeoutException
 import time
 import math
+import json
+import threading
+import warnings
+import urllib3
+
 
 from openai_auth import get_token
 
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", category=urllib3.exceptions.PoolFullWarning)
+warnings.filterwarnings("ignore", category=urllib3.exceptions.MaxRetryError)
+
 # Load NLP model
-nlp = spacy.load("en_core_web_sm")
-matcher = Matcher(nlp.vocab)
+#nlp = spacy.load("en_core_web_sm")
+#matcher = Matcher(nlp.vocab)
 
 # Initialize list to store recorded actions
 recorded_actions = []
@@ -32,9 +44,24 @@ instruction_entry = None
 
 # Initialize Chrome driver and options
 chrome_options = Options()
-chrome_options.add_argument("--disable-web-security")  # THIS IS UNSAFE FOR REGULAR BROWSING
-chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
-driver = webdriver.Chrome(options=chrome_options)
+chrome_options.add_argument("--disable-web-security")  # WARNING: This is unsafe for regular browsing
+chrome_options.add_argument("--start-maximized")
+chrome_options.add_argument("--remote-allow-origins=*")
+chrome_options.add_argument("--disable-notifications")
+chrome_options.add_argument("--incognito")
+chrome_options.add_experimental_option("useAutomationExtension", False)
+chrome_options.add_argument('--ignore-certificate-errors')
+
+download_path = "./downloads"  # Update this path
+prefs = {
+    "download.default_directory": download_path,
+    "download.prompt_for_download": False,
+    "plugins.plugins_disabled": ["Adobe Flash Player", "Chrome PDF Viewer"]
+}
+chrome_options.add_experimental_option("prefs", prefs)
+
+service = Service(ChromeDriverManager().install())
+driver = webdriver.Chrome(service=service, options=chrome_options)
 actions = ActionChains(driver)
 
 
@@ -47,7 +74,7 @@ def process_instruction():
     
     tag_found = raw_response.choices[0]["message"]["content"]
     # If there's a match, it indicates the user wants to retrieve text
-    if "getText" in tag_found or "validation" in tag_found:
+    if "getText" in tag_found or  "validation" in tag_found:
         driver.execute_script("""
             document.addEventListener('click', function getTextEvent(e) {
                 e.preventDefault();
@@ -73,52 +100,47 @@ def process_instruction():
                 return paths.length ? "/" + paths.join("/") : null;
             }
         """)
+        if "getText" in tag_found:
+            root.after(2000, get_text_instruction)
+        elif "validation" in tag_found:
+            root.after(2000, validation_instruction)
+
+    elif "validation" in tag_found:
+        pass
         # Give user a brief moment to click the element they want to get text from
-        root.after(2000, fetch_text_instruction)
-
-
-def get_xpath(element):
-    return driver.execute_script("""
-        function getElementXPath(element) {
-            if (element.id) {
-                return 'id("' + element.id + '")';
-            }
-            var pathSegments = [];
-            for (; element && element.nodeType === Node.ELEMENT_NODE; element = element.parentNode) {
-                var segment = element.localName || null;
-                if (!segment) {
-                    continue;
-                }
-                segment = segment.toLowerCase();
-                var siblings = [];
-                var sibling = element.parentNode.firstChild;
-                do {
-                    if (sibling.nodeType === Node.DOCUMENT_TYPE_NODE) {
-                        continue;
-                    }
-                    if (sibling.nodeName === element.nodeName) {
-                        siblings.push(sibling);
-                    }
-                } while (sibling = sibling.nextSibling);
-                if (siblings.length > 1) {
-                    segment += '[' + (siblings.indexOf(element) + 1) + ']';
-                }
-                pathSegments.unshift(segment);
-            }
-            return pathSegments.length ? './' + pathSegments.join('/') : null;
-        }
-        return getElementXPath(arguments[0]);
-    """, element)
+        
 
 
 
-def fetch_text_instruction():
+def get_text_instruction():
     xpath = driver.execute_script("return window.clickedElementXPath || '';")
     if xpath:
-        print(f'<getText xpath="{xpath}"></getText>')
-        driver.execute_script(f"window.recordedEvents.push(['getText', '{xpath}', Date.now()]);")
-        # Reset after processing
-        driver.execute_script("window.clickedElementXPath = null;")
+        js_script = f"""
+            function saveEvents() {{
+                sessionStorage.setItem('recordedEvents', JSON.stringify(window.recordedEvents));
+            }}
+            window.recordedEvents.push(['getText', Date.now(), '{xpath}']);
+            saveEvents();
+            window.clickedElementXPath = null;
+        """
+        driver.execute_script(js_script)
+    
+    else:
+        messagebox.showwarning("Action Recorder", "No element selected. Please try again.")
+
+
+def validation_instruction():
+    xpath = driver.execute_script("return window.clickedElementXPath || '';")
+    if xpath:
+        js_script = f"""
+            function saveEvents() {{
+                sessionStorage.setItem('recordedEvents', JSON.stringify(window.recordedEvents));
+            }}
+            window.recordedEvents.push(['validate that an element exists', Date.now(), '{xpath}']);
+            saveEvents();
+            window.clickedElementXPath = null;
+        """
+        driver.execute_script(js_script)
     else:
         messagebox.showwarning("Action Recorder", "No element selected. Please try again.")
 
@@ -130,32 +152,90 @@ def set_up_listeners():
     js_script = """
         if (!window.hasInjected) {
             window.recordedEvents = [];
+
+            //window.recordedEvents = JSON.parse(sessionStorage.getItem('recordedEvents')) || [];
             window.hasInjected = true;
             window.isPaused = false;
+
+            // Function to save events to session storage
+            function saveEvents() {
+                sessionStorage.setItem('recordedEvents', JSON.stringify(window.recordedEvents));
+            }
+
+            document.addEventListener('submit', function(e) {
+                window.recordedEvents.push(['formSubmit', Date.now(), computeXPath(e.target)]);
+                saveEvents();
+                sendEventsToServerSync();  // Add this line
+            }, true);
+
+            function sendEventsToServerSync() {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", 'http://localhost:5000/save', false);  // false for synchronous request
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.send(JSON.stringify(window.recordedEvents));
+            }
+
+            window.addEventListener('beforeunload', saveEvents);
 
             document.addEventListener('click', function(e) {
             if (window.isPaused) return;  // Add this condition
                 var xpath = computeXPath(e.target);
-                window.recordedEvents.push(['click', xpath, Date.now()]);
+                window.recordedEvents.push(['click', Date.now(), xpath]);
+                saveEvents();
+            });
+
+            document.addEventListener('dblclick', function(e) {
+                if (window.isPaused) return;
+                var xpath = computeXPath(e.target);
+                window.recordedEvents.push(['dblClick', Date.now(), xpath]);
+                saveEvents();
             });
 
             document.addEventListener('keypress', function(e) {
                 if (window.isPaused) return;  // Add this condition
                 var xpath = computeXPath(e.target);
-                window.recordedEvents.push(['input', xpath, Date.now(), e.key]);
+                window.recordedEvents.push(['input', Date.now(), xpath, e.key]);
+                saveEvents();
             });
 
+            function recordPageLoadEvent() {
+                if (window.recordedEvents.length === 0 || window.recordedEvents[window.recordedEvents.length - 1][0] !== 'WaitForPageLoad') {
+                    window.recordedEvents.push(['WaitForPageLoad', Date.now()]);
+                    saveEvents();
+                }
+            }
+
+            recordPageLoadEvent();
+
             function computeXPath(element) {
+                if (!element) return null;
+                if (element.id) return `//*[@id="${element.id}"]`;
+                var attributes = element.attributes;
+                var path = '';
+                for (var i = 0; i < attributes.length; i++) {
+                    var attr = attributes[i];
+                    if (attr.specified && attr.name !== 'id' && attr.name !== 'class') {
+                        path = `//${element.tagName.toLowerCase()}[@${attr.name}='${attr.value}']`;
+                        if (document.evaluate("count(" + path + ")", document, null, XPathResult.ANY_TYPE, null).numberValue === 1) {
+                            return path;
+                        }
+                    }
+                }
                 var paths = [];
-                for (; element && element.nodeType == 1; element = element.parentNode) {
+                for (; element && element.nodeType === 1; element = element.parentNode) {
                     var index = 0;
-                    for (var sibling = element.previousSibling; sibling; sibling = sibling.previousSibling) {
-                        if (sibling.nodeType == 1 && sibling.tagName == element.tagName)
+                    var sibling = element.previousSibling;
+                    for (; sibling; sibling = sibling.previousSibling) {
+                        if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
                             index++;
+                        }
                     }
                     var tagName = element.tagName.toLowerCase();
                     var pathIndex = (index ? "[" + (index + 1) + "]" : "");
                     paths.splice(0, 0, tagName + pathIndex);
+                    if (element.parentElement && element.parentElement.id) {
+                        return `//*[@id="${element.parentElement.id}"]/${paths.join("/")}`;
+                    }
                 }
                 return paths.length ? "/" + paths.join("/") : null;
             }
@@ -166,26 +246,84 @@ def set_up_listeners():
     print(f"Script injection result: {result}")
 
 
+def backup_events_to_server():
+    global driver
+    try:
+        response = driver.execute_async_script("""
+            var done = arguments[0];
+            var tempRecordedEvents = window.recordedEvents;
+            window.recordedEvents = [];  // Clear the events array immediately
+            window.isPaused = true;  // Pause event recording
 
-# Modify record_action function to store actions in a structured format
-def record_action(action_type, element, value=None):
-    xpath = get_xpath(element)
-    if action_type == 'input':
-        recorded_actions.append({'type': 'input', 'xpath': xpath, 'value': value})
-    else:
-        recorded_actions.append({'type': action_type, 'xpath': xpath})
+            fetch('http://localhost:5000/save', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(tempRecordedEvents)
+            })
+            .then(function(response) {
+                if (response.ok) {
+                    sessionStorage.removeItem('recordedEvents');
+                } else {
+                    // If not successful, re-add the events for retry
+                    window.recordedEvents = window.recordedEvents.concat(tempRecordedEvents);
+                }
+                window.isPaused = false;  // Resume event recording
+                done(true);
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                window.recordedEvents = window.recordedEvents.concat(tempRecordedEvents);
+                window.isPaused = false;  // Resume event recording
+                done(false);
+            });
+        """)
+        return response
+    except Exception as e:
+        print("Exception in backup_events_to_server: ", e)
 
+
+
+def monitor_page_load(stop_thread_flag):
+    global driver
+    old_url = driver.current_url
+    while not stop_thread_flag.is_set():
+        try:
+            time.sleep(0.01)
+            if driver:
+                new_url = driver.current_url
+                if new_url != old_url:
+                    backup_events_to_server()
+                    print("Page has navigated. Reinjecting scripts...")
+                    WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+                    set_up_listeners()
+                    old_url = new_url
+        except Exception as e:
+            print("Exception in monitor_page_load: ", e)
+            break
+
+
+
+stop_thread_flag = threading.Event()
 
 # Loop to continuously check for user inactivity
 def start_recording():
-    global driver, actions, start_time, last_time
+    global driver, actions, start_time, last_time, stop_thread_flag
     url = url_entry.get()
-    driver = webdriver.Chrome()
+    driver = webdriver.Chrome(options=chrome_options)
     driver.get(url)
     actions = ActionChains(driver)
+
+    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
     set_up_listeners()
+
+    stop_thread_flag.clear()
+    monitor_thread = threading.Thread(target=monitor_page_load, args=(stop_thread_flag,))
+    monitor_thread.daemon = True
+    monitor_thread.start()
+    
     start_time = time.time() * 1000
     last_time = time.time() * 1000
+
 
 
 def pause_recording():
@@ -225,78 +363,187 @@ def show_instruction_entry():
     go_btn = tk.Button(instruction_frame, text="Go!", command=process_instruction)
     go_btn.grid(row=0, column=2)
 
-# Function to format recorded actions for GPT-4
-def format_actions_for_gpt4():
-    descriptions = []
-    #print(f"\n\n format_actions_for_gpt4 : {recorded_actions} \n\n")
-    for action in recorded_actions:
-        if action['type'] == 'click':
-            descriptions.append(f'click xpath="{action["xpath"]}"')
-        elif action['type'] == 'input':
-            descriptions.append(f'input xpath="{action["xpath"]}" with the value "{action["value"]}"')
-        # Add other action types as needed
-    return ", ".join(descriptions)
+
 
 # Modify stop_and_show_records to call GPT-4 script
 def stop_and_show_records():
-    gpt_input = ""
-    global driver, last_time, paused_time_total
+    #backup_events_to_server()
+
+    gpt_input = []
+    global driver, last_time, paused_time_total, stop_thread_flag
     if driver:
-        recorded_events = driver.execute_script("return window.recordedEvents || [];")
+
+        combined_events = []
+        try:
+            final_session_events = driver.execute_script("return sessionStorage.getItem('recordedEvents');")
+            if final_session_events:
+                final_session_events = json.loads(final_session_events)
+                print(f"\n\n\n Successfully retrieved the final session events : \n{final_session_events}\n\n\n")
+            else:
+                final_session_events = []
+
+            server_events = driver.execute_script("""
+                var request = new XMLHttpRequest();
+                request.open('GET', 'http://localhost:5000/retrieve', false);  // false for synchronous
+                request.send(null);
+                if (request.status === 200) {
+                    return request.responseText;
+                }
+                return '[]';
+            """)
+            if server_events:
+                server_events = json.loads(server_events)
+                print(f"\n\n\n Retrieved the events from the server : \n{server_events} \n\n\n")
+            else:
+                server_events = []
+
+            combined_events = server_events + final_session_events
+            #combined_events = server_events
+            print(f"\n\n The combined events are : {combined_events}")
+        
+        except Exception as e:
+            print("Exception in stop_and_show_records: ", e)
+
+
+        #if recorded_events:
+        #    recorded_events = json.loads(recorded_events)
+        recorded_events = combined_events
+
         print(f"Recorded events: {recorded_events}\n\n\n")
+        driver.execute_script("sessionStorage.removeItem('recordedEvents');")        
 
         last_time = start_time
         prev_event_was_input = False
+        prev_event_was_wait = False
+        prev_event_was_waitforpageload = False
         combined_input = None
         combined_xpath = None
         for event in recorded_events:
-            event_type, xpath, timestamp, *others = event
+            event_type, timestamp, *others = event
 
             # Print wait only if previous event wasn't input or current event is not input
-            if not prev_event_was_input or event_type != "input":
+            if (not prev_event_was_input or event_type != "input") and ((event_type != "WaitForPageLoad" and not prev_event_was_waitforpageload) and not prev_event_was_wait):
                 wait_time = abs(math.ceil((timestamp - last_time - paused_time_total) / 1000.0)) * 1000
                 paused_time_total=0
-                #print(f'<wait time="{wait_time}"></wait>')
-                gpt_input += f"wait : time={wait_time}, "
+                input_string = f"wait : time={wait_time}, "
+                gpt_input.append(input_string)
+                prev_event_was_wait = True
+                prev_event_was_waitforpageload == False
 
             if event_type == "click":
-                #print(f'<{event_type} xpath="{xpath}"></{event_type}>')
-                gpt_input += f"click : xpath={xpath}, "
-                prev_event_was_input = False
                 if combined_input:
-                    #print(f'<input xpath="{combined_xpath}" value="{combined_input}"></input>')
-                    gpt_input += f"input : xpath={combined_xpath} and value={combined_input}, "
+                    input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
+                    gpt_input.append(input_string)
                     combined_input = None
                     combined_xpath = None
+                xpath = others[0]
+                input_string = f"click : xpath={xpath}, "
+                gpt_input.append(input_string)
+                prev_event_was_input = False
+                
+                prev_event_was_wait = False
+                prev_event_was_waitforpageload == False
+
+            elif event_type == "dblClick":
+                 if combined_input:
+                    input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
+                    gpt_input.append(input_string)
+                    combined_input = None
+                    combined_xpath = None
+                 xpath = others[0]
+                 input_string = f"dblClick : xpath={xpath}, "
+                 gpt_input.append(input_string)
+                 prev_event_was_input = False
+                 prev_event_was_wait = False
+                 prev_event_was_waitforpageload == False
+
             elif event_type == "input":
-                char = others[0]
+                xpath = others[0]
+                char = others[1]
                 if prev_event_was_input and xpath == combined_xpath:
                     combined_input += char
                 else:
                     if combined_input:
-                        pass
-                        #print(f'input : xpath="{combined_xpath}" value="{combined_input}" ')
-                        #print(f"input : {combined_xpath}, {combined_input}")
-                        gpt_input += f"input : xpath={xpath} value={combined_input}"
+                        input_string = f"input : xpath={combined_xpath} value={combined_input}, "
+                        gpt_input.append(input_string)
                     combined_input = char
                     combined_xpath = xpath
                 prev_event_was_input = True
+                prev_event_was_wait = False
+                prev_event_was_waitforpageload == False
+
             elif event_type == "getText":
-                #print(f'<getText xpath="{xpath}"></getText>')
-                gpt_input += f"get text xpath={xpath}"
-                pass
+                if combined_input:
+                    input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
+                    gpt_input.append(input_string)
+                    combined_input = None
+                    combined_xpath = None
+                input_string = f"get text xpath={xpath}, "
+                gpt_input.append(input_string)
+                prev_event_was_wait = False
+                prev_event_was_waitforpageload == False
+
+            elif event_type == "WaitForPageLoad" and prev_event_was_waitforpageload == False:
+                if combined_input:
+                    input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
+                    gpt_input.append(input_string)
+                    combined_input = None
+                    combined_xpath = None
+                prev_event_was_waitforpageload = True
+                input_string = "WaitForPageLoad, "
+                gpt_input.append(input_string)
+                prev_event_was_wait = False
 
             last_time = timestamp
         # Print any remaining combined input after loop ends
         if combined_input:
+            input_string += f'input : xpath="{combined_xpath}" value="{combined_input}'
+            gpt_input.append(input_string)
             #print(f'input : xpath="{combined_xpath}" value="{combined_input}" ')
-            pass
 
+        stop_thread_flag.set()
         driver.quit()
     
-    # Call GPT-4 script with formatted actions
-    formatted_actions = format_actions_for_gpt4()
-    get_PAF_code(gpt_input)
+        counter = 0
+        while counter < len(gpt_input)-1:
+            if (gpt_input[counter] == gpt_input[counter+1]) or (gpt_input[counter] == 'wait : time=0'):
+                gpt_input.pop(counter)
+            
+            counter += 1
+        
+        def update_wait_times(input_str):
+            parts = input_str.split(', ')
+            updated_parts = []
+
+            j = 0
+            while j < len(parts):
+                if 'wait : time' in parts[j]:
+                    total_wait_time = int(parts[j].split('=')[1])
+                    j += 1
+                    while j < len(parts) and 'wait : time' in parts[j]:
+                        total_wait_time += int(parts[i].split('=')[1])
+                        j += 1
+                    updated_parts.append(f'wait : time={total_wait_time}')
+                else:
+                    updated_parts.append(parts[j])
+                    j += 1
+
+            return ', '.join(updated_parts)        
+
+        gpt_input = [update_wait_times(entry) for entry in gpt_input]
+ 
+        #print(f"\n\n The value of gpt_input is : {gpt_input}")
+        while len(gpt_input) > 0:
+            gpt_input_string = ""
+            input_count = 10 if len(gpt_input) > 9 else len(gpt_input)
+            for i in range(input_count):
+                gpt_input_string += gpt_input.pop(0)
+            # Call GPT-4 script with formatted actions
+            #print("\n\n")
+            print(f"The gpt_input_string is : \n{gpt_input_string}")
+            #print("\n\n\n The PAF code equavalent is : \n\n")
+            #get_PAF_code(gpt_input_string)
+        
     
 
 # GUI setup
@@ -347,7 +594,7 @@ def get_PAF_code(formatted_actions):
 
     formatted_response = gpt_call(openai, gpt_model, deployment_id, formatted_actions)
     #print(f"\n\n\n The queries are : {query_final}")
-    print("\n\n\n The PAF code equavalent is : \n\n")
+    #print("\n\n\n The PAF code equavalent is : \n\n")
     print(formatted_response.choices[0]["message"]["content"])
 
 def gpt_call(openai, gpt_model, deployment_id, question):
@@ -366,8 +613,8 @@ def gpt_call(openai, gpt_model, deployment_id, question):
                -
               </activity>
             
-              The activity can be named anything. Simply replace the 'activity_name' in the id attribute 
-              with an appropriate name which describes what the activity is doing.
+              The activity can be given an appropriate name which represents the actions in it. Simply replace the 'activity_name' 
+              in the id attribute with an appropriate name which describes what the activity is doing.
               Now the content inside the activity tag would be the individual functionality. Each functionality
               be a simple tag like <click xpath=""></click>, <input xpath="" value=""></input> which form the
               building blocks of PAF. Now let us explore some PAF tags with their corresponding functionality.
@@ -384,10 +631,12 @@ def gpt_call(openai, gpt_model, deployment_id, question):
 
               To wait for a specified amount of time in ms :
               <wait time="time_in_ms"></wait>
-              Where the time attribute is the time in ms.
+              Where the time attribute is the time in ms. A wait tag should not appear consecutively. If such an input appears, 
+              just add up the wait times and return it as one wait tag with the combined wait time.
 
               To wait till the page has loaded :
               <WaitForPageLoad/>
+              A wait tag should not appear immediately before or after a WaitForPageLoad.
 
               To double click on an element :
               <dblClick xpath="xpath_value"></dblClick>
@@ -500,6 +749,31 @@ def gpt_call_2(openai, gpt_model, deployment_id, question):
               To call the valGroup, use the validation tag :
                 <validation valGroupIds="group-id">
               Here, the valGroupIds must have the same group id as the vlGroup it is referencing.
+
+              """)
+    
+    # Make the API call to GPT-4
+    response = openai.ChatCompletion.create(
+        deployment_id=deployment_id,
+        model=gpt_model,
+        temperature=0,
+        max_tokens=500,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0,
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": question}
+        ],
+    )
+
+    return response
+
+
+def gpt_call_flow(openai, gpt_model, deployment_id, question):
+    # Define the prompt for GPT-4
+    prompt = (f"""
+                Convert the given activities from the PAF framework into flows to be used.
 
               """)
     
