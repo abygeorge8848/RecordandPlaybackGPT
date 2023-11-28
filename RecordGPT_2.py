@@ -132,28 +132,9 @@ def validation_instruction():
     xpath = driver.execute_script("return window.clickedElementXPath || '';")
     if xpath:
         js_script = f"""
-            function sendEventsToServerSync() {{
-                if (window.isSending || window.recordedEvents.length === 0) {{
-                    return; // Do not send if a send operation is in progress or if there are no events to send
-                }}
-                window.isSending = true;
-
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", 'http://localhost:5000/save', true);
-                xhr.onreadystatechange = function() {{
-                    if (xhr.readyState == 4) {{
-                        if (xhr.status == 200) {{
-                            console.log('Event data sent successfully');
-                        }}
-                        window.isSending = false;
-                        window.recordedEvents = []; // Clear the recorded events after sending
-                    }}
-                }};
-
-                xhr.setRequestHeader('Content-Type', 'application/json');
-                xhr.send(JSON.stringify(window.recordedEvents));
-            }}    
-        
+            function saveEvents() {{
+                sessionStorage.setItem('recordedEvents', JSON.stringify(window.recordedEvents));
+            }}
             window.recordedEvents.push(['validate that an element exists', Date.now(), '{xpath}']);
             saveEvents();
             window.clickedElementXPath = null;
@@ -169,30 +150,30 @@ def set_up_listeners():
     # Injecting JS to add click and input event listeners
     js_script = """
         if (!window.hasInjected) {
+            //window.recordedEvents = JSON.parse(sessionStorage.getItem('recordedEvents')) || [];
             window.recordedEvents = [];
+
             window.hasInjected = true;
             window.isPaused = false;
 
+            // Function to save events to session storage
+            function saveEvents() {
+                sessionStorage.setItem('recordedEvents', JSON.stringify(window.recordedEvents));
+            }
+
             document.addEventListener('submit', function(e) {
                 window.recordedEvents.push(['formSubmit', Date.now(), computeXPath(e.target)]);
-                //sendEventsToServerSync();  
+                saveEvents();
+                sendEventsToServerSync();  
             }, true);
 
             function sendEventsToServerSync() {
-                if (window.isSending || window.recordedEvents.length === 0) {
-                    return; // Do not send if a send operation is in progress or if there are no events to send
-                }
-                window.isSending = true;
-
+                console.log(`The recorded events are : ${window.recordedEvents}`);
                 var xhr = new XMLHttpRequest();
                 xhr.open("POST", 'http://localhost:5000/save', true);
                 xhr.onreadystatechange = function() {
-                    if (xhr.readyState == 4) {
-                        if (xhr.status == 200) {
-                            console.log('Event data sent successfully');
-                        }
-                        window.isSending = false;
-                        window.recordedEvents = []; // Clear the recorded events after sending
+                    if (xhr.readyState == 4 && xhr.status == 200) {
+                        console.log('Event data sent successfully');
                     }
                 };
 
@@ -200,52 +181,34 @@ def set_up_listeners():
                 xhr.send(JSON.stringify(window.recordedEvents));
             }
 
+            window.addEventListener('beforeunload', saveEvents);
 
             document.addEventListener('click', function(e) {
-                if (window.isPaused) return;
+            if (window.isPaused) return;  // Add this condition
                 var xpath = computeXPath(e.target);
                 window.recordedEvents.push(['click', Date.now(), xpath]);
-                sendEventsToServerSync();  
+                saveEvents();
             });
 
             document.addEventListener('dblclick', function(e) {
                 if (window.isPaused) return;
                 var xpath = computeXPath(e.target);
                 window.recordedEvents.push(['dblClick', Date.now(), xpath]);
-                sendEventsToServerSync();  
+                saveEvents();
             });
 
             document.addEventListener('keypress', function(e) {
-                if (window.isPaused) return;
+                if (window.isPaused) return;  // Add this condition
                 var xpath = computeXPath(e.target);
                 window.recordedEvents.push(['input', Date.now(), xpath, e.key]);
-                sendEventsToServerSync();  
+                saveEvents();
             });
 
             function recordPageLoadEvent() {
                 if (window.recordedEvents.length === 0 || window.recordedEvents[window.recordedEvents.length - 1][0] !== 'WaitForPageLoad') {
                     window.recordedEvents.push(['WaitForPageLoad', Date.now()]);
-                    sendEventsToServerSync();  
+                    saveEvents();
                 }
-            }
-
-            document.addEventListener('scroll', function(e) {
-                if (window.isPaused) return;
-                var xpath = computeXPathOfTopVisibleElement();
-                window.recordedEvents.push(['scroll', Date.now(), xpath]);
-                sendEventsToServerSync();  
-            });
-
-            function computeXPathOfElementAt20Percent() {
-                var yPosition = window.innerHeight * 0.25; 
-                var elements = document.elementsFromPoint(window.innerWidth / 2, yPosition);
-                for (var i = 0; i < elements.length; i++) {
-                    var xpath = computeXPath(elements[i]);
-                    if (xpath) {
-                        return xpath;
-                    }
-                }
-                return null;
             }
 
             recordPageLoadEvent();
@@ -292,29 +255,38 @@ def set_up_listeners():
 def backup_events_to_server():
     global driver
     try:
-        # Use execute_script instead of execute_async_script to block execution until the script completes
-        response = driver.execute_script("""
-            // Create a synchronous XMLHttpRequest to ensure that the function waits for the response
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', 'http://localhost:5000/save', false);  // false for synchronous request
-            xhr.setRequestHeader('Content-Type', 'application/json');
+        response = driver.execute_async_script("""
+            var done = arguments[0];
+            var tempRecordedEvents = window.recordedEvents;
+            console.log(`The the temporary recorded events are : ${tempRecordedEvents}`)
+            window.recordedEvents = [];  // Clear the events array immediately
+            window.isPaused = true;  // Pause event recording
 
-            var tempRecordedEvents = [...window.recordedEvents];
-            window.recordedEvents = [];  // Clear the recorded events
-            xhr.send(JSON.stringify(tempRecordedEvents));
-
-            // Check for successful response
-            if (xhr.status === 200) {
-                return JSON.parse(xhr.responseText);  // Assuming the server responds with JSON
-            } else {
-                throw new Error('Failed to backup events: ' + xhr.statusText);
-            }
+            fetch('http://localhost:5000/save', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(tempRecordedEvents)
+            })
+            .then(function(response) {
+                if (response.ok) {
+                    sessionStorage.removeItem('recordedEvents');
+                } else {
+                    // If not successful, re-add the events for retry
+                    window.recordedEvents = window.recordedEvents.concat(tempRecordedEvents);
+                }
+                window.isPaused = false;  // Resume event recording
+                done(true);
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                window.recordedEvents = window.recordedEvents.concat(tempRecordedEvents);
+                window.isPaused = false;  // Resume event recording
+                done(false);
+            });
         """)
-        print(f"The response from the server is :  {response}")
         return response
     except Exception as e:
         print("Exception in backup_events_to_server: ", e)
-
 
 
 
@@ -327,11 +299,10 @@ def monitor_page_load(stop_thread_flag):
             if driver:
                 new_url = driver.current_url
                 if new_url != old_url:
-                    print(f"URL : '{old_url}' has been changed to '{new_url}'")
                     print("URL change detected. Preparing to backup data ...")
-                    #server_response = backup_events_to_server()
+                    backup_events_to_server()
                     print("Page has navigated. Reinjecting scripts...")
-                    WebDriverWait(driver, 240).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+                    WebDriverWait(driver, 120).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
                     set_up_listeners()
                     old_url = new_url
         except Exception as e:
@@ -404,9 +375,7 @@ def show_instruction_entry():
 
 # Modify stop_and_show_records to call GPT-4 script
 def stop_and_show_records():
-    #print("\n The recording has stopped!\n")
-    #print("\n Preparing to back up the last loaded data ... \n")
-    #backup_events_to_server()
+    backup_events_to_server()
 
     gpt_input = []
     global driver, last_time, paused_time_total, stop_thread_flag
@@ -414,12 +383,12 @@ def stop_and_show_records():
 
         combined_events = []
         try:
-            final_session_events = driver.execute_script("return window.recordedEvents || [];")
+            final_session_events = driver.execute_script("return sessionStorage.getItem('recordedEvents');")
             if final_session_events:
+                final_session_events = json.loads(final_session_events)
                 print(f"\n\n\n Successfully retrieved the final session events : \n{final_session_events}\n\n\n")
             else:
                 final_session_events = []
-
 
             server_events = driver.execute_script("""
                 var request = new XMLHttpRequest();
@@ -432,13 +401,13 @@ def stop_and_show_records():
             """)
             if server_events:
                 server_events = json.loads(server_events)
-                print(f"\n\n Retrieved the events from the server : \n{server_events} \n\n")
+                print(f"\n\n\n Retrieved the events from the server : \n{server_events} \n\n\n")
             else:
                 server_events = []
 
-            #combined_events = server_events + final_session_events
-            combined_events = server_events
-            print(f"\n\n The combined events are : {combined_events}\n\n")
+            combined_events = server_events + final_session_events
+            #combined_events = server_events
+            print(f"\n\n The combined events are : {combined_events}")
         
         except Exception as e:
             print("Exception in stop_and_show_records: ", e)
@@ -448,8 +417,8 @@ def stop_and_show_records():
         #    recorded_events = json.loads(recorded_events)
         recorded_events = combined_events
 
-        print(f"\n\nRecorded events: {recorded_events}\n\n\n")
-        #driver.execute_script("sessionStorage.removeItem('recordedEvents');")        
+        print(f"Recorded events: {recorded_events}\n\n\n")
+        driver.execute_script("sessionStorage.removeItem('recordedEvents');")        
 
         last_time = start_time
         prev_event_was_input = False
@@ -491,19 +460,6 @@ def stop_and_show_records():
                     combined_xpath = None
                  xpath = others[0]
                  input_string = f"dblClick : xpath={xpath}, "
-                 gpt_input.append(input_string)
-                 prev_event_was_input = False
-                 prev_event_was_wait = False
-                 prev_event_was_waitforpageload == False
-
-            elif event_type == "scroll":
-                 if combined_input:
-                    input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
-                    gpt_input.append(input_string)
-                    combined_input = None
-                    combined_xpath = None
-                 xpath = others[0]
-                 input_string = f"scroll : xpath={xpath}, "
                  gpt_input.append(input_string)
                  prev_event_was_input = False
                  prev_event_was_wait = False
@@ -554,10 +510,15 @@ def stop_and_show_records():
             #print(f'input : xpath="{combined_xpath}" value="{combined_input}" ')
 
         stop_thread_flag.set()
-        #driver.quit()
-
-
-
+        driver.quit()
+    
+        counter = 0
+        while counter < len(gpt_input)-1:
+            if (gpt_input[counter] == gpt_input[counter+1]) or (gpt_input[counter] == 'wait : time=0'):
+                gpt_input.pop(counter)
+            
+            counter += 1
+        
         def update_wait_times(input_str):
             parts = input_str.split(', ')
             updated_parts = []
@@ -580,38 +541,16 @@ def stop_and_show_records():
         gpt_input = [update_wait_times(entry) for entry in gpt_input]
  
         #print(f"\n\n The value of gpt_input is : {gpt_input}")
-    
-        counter = 0
-        while counter < len(gpt_input)-1:
-            if (gpt_input[counter] == gpt_input[counter+1]) or (gpt_input[counter] == 'wait : time=0'):
-                gpt_input.pop(counter)
-            if 'scroll' in gpt_input[counter] and 'scroll' in gpt_input[counter+1]:
-                gpt_input.pop(counter)
-            
-            counter += 1
-
-        cleaned_gpt_input_1 = []
-        for element in gpt_input:
-            if "scroll" in element:
-                if not cleaned_gpt_input_1 or "scroll" not in cleaned_gpt_input_1[-1]:
-                    cleaned_gpt_input_1.append(element)
-            else:
-                cleaned_gpt_input_1.append(element)
-
-        gpt_input = cleaned_gpt_input_1
-        
         while len(gpt_input) > 0:
             gpt_input_string = ""
-            input_count = 12 if len(gpt_input) > 11 else len(gpt_input)
+            input_count = 10 if len(gpt_input) > 9 else len(gpt_input)
             for i in range(input_count):
                 gpt_input_string += gpt_input.pop(0)
             # Call GPT-4 script with formatted actions
-            gpt_input_string = gpt_input_string[:-2]
             #print("\n\n")
             print(f"The gpt_input_string is : \n{gpt_input_string}")
-            print("\n\n\n The PAF code equavalent is : \n\n")
-            get_PAF_code(gpt_input_string)
-
+            #print("\n\n\n The PAF code equavalent is : \n\n")
+            #get_PAF_code(gpt_input_string)
         
     
 

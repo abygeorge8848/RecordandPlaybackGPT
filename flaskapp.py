@@ -1,16 +1,20 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from waitress import serve
 from RecordGPT import root
 import threading
 
 app = Flask(__name__)
+CORS(app)
 
 # In-memory storage for simplicity; consider a database for production use
 events = []
 
 @app.route('/save', methods=['POST'])
 def save_events():
+    print("Sending request to retrieve data to be saved ...")
     data = request.json
+    print(f"\nThe recieved data is : {data}\n")
     events.extend(data)
     print(f"\n\n The saved events are : {events} \n\n")
     return jsonify({"status": "success"})

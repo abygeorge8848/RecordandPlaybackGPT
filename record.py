@@ -25,10 +25,20 @@ patterns = [
 
 matcher.add("GET_TEXT", patterns)
 
+#https://grantplan-pilot.solutions.iqvia.com/Next
+#PROXY = "10.194.105.248:80"
+#webdriver.DesiredCapabilities.CHROME['proxy'] = {
+#    "httpProxy": PROXY,
+#    #"sslProxy": PROXY,
+#    "proxyType": "manual",
+#}
+
 # Start Chrome
-chrome_options = Options()
-chrome_options.add_argument("--disable-web-security")  # THIS IS UNSAFE FOR REGULAR BROWSING
-chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+#chrome_options = webdriver.Options()
+#chrome_options.add_argument('--proxy-server=%s' % PROXY)
+#chrome_options.add_argument('--ignore-certificate-errors')
+#chrome_options.add_argument("--disable-web-security")  # THIS IS UNSAFE FOR REGULAR BROWSING
+#chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
 
 paused_time_total= 0
 paused_at = None
@@ -36,7 +46,8 @@ paused_at = None
 instruction_frame = None
 instruction_entry = None
 
-driver = webdriver.Chrome(options=chrome_options)
+#driver = webdriver.Chrome(options=chrome_options)
+driver = webdriver.Firefox()
 actions = ActionChains(driver)
 
 
@@ -181,7 +192,8 @@ def set_up_listeners():
 def start_recording():
     global driver, actions, start_time, last_time
     url = url_entry.get()
-    driver = webdriver.Chrome()
+    #driver = webdriver.Chrome(options=chrome_options)
+    driver = webdriver.Firefox()
     driver.get(url)
     actions = ActionChains(driver)
     set_up_listeners()
