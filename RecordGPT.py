@@ -18,6 +18,7 @@ import json
 import threading
 import warnings
 import urllib3
+import os
 
 
 from openai_auth import get_token
@@ -69,7 +70,7 @@ def process_instruction():
     deployment_id, gpt_model, embedding_model, openai = get_token()
 
     instruction = instruction_entry.get()
-    raw_response = gpt_call(openai, gpt_model, deployment_id, instruction)
+    raw_response = gpt_call_2(openai, gpt_model, deployment_id, instruction)
     
     tag_found = raw_response.choices[0]["message"]["content"]
     # If there's a match, it indicates the user wants to retrieve text
@@ -115,11 +116,29 @@ def get_text_instruction():
     xpath = driver.execute_script("return window.clickedElementXPath || '';")
     if xpath:
         js_script = f"""
-            function saveEvents() {{
-                sessionStorage.setItem('recordedEvents', JSON.stringify(window.recordedEvents));
+            function sendEventsToServerSync() {{
+                if (window.isSending || window.recordedEvents.length === 0) {{
+                    return; // Do not send if a send operation is in progress or if there are no events to send
+                }}
+                window.isSending = true;
+
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", 'http://localhost:9000/save', true);
+                xhr.onreadystatechange = function() {{
+                    if (xhr.readyState == 4) {{
+                        if (xhr.status == 200) {{
+                            console.log('Event data sent successfully');
+                        }}
+                        window.isSending = false;
+                        window.recordedEvents = []; // Clear the recorded events after sending
+                    }}
+                }};
+
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.send(JSON.stringify(window.recordedEvents));
             }}
             window.recordedEvents.push(['getText', Date.now(), '{xpath}']);
-            saveEvents();
+            sendEventsToServerSync();
             window.clickedElementXPath = null;
         """
         driver.execute_script(js_script)
@@ -139,7 +158,7 @@ def validation_instruction():
                 window.isSending = true;
 
                 var xhr = new XMLHttpRequest();
-                xhr.open("POST", 'http://localhost:5000/save', true);
+                xhr.open("POST", 'http://localhost:9000/save', true);
                 xhr.onreadystatechange = function() {{
                     if (xhr.readyState == 4) {{
                         if (xhr.status == 200) {{
@@ -152,10 +171,9 @@ def validation_instruction():
 
                 xhr.setRequestHeader('Content-Type', 'application/json');
                 xhr.send(JSON.stringify(window.recordedEvents));
-            }}    
-        
+            }}
             window.recordedEvents.push(['validate that an element exists', Date.now(), '{xpath}']);
-            saveEvents();
+            sendEventsToServerSync();
             window.clickedElementXPath = null;
         """
         driver.execute_script(js_script)
@@ -173,19 +191,16 @@ def set_up_listeners():
             window.hasInjected = true;
             window.isPaused = false;
 
-            document.addEventListener('submit', function(e) {
-                window.recordedEvents.push(['formSubmit', Date.now(), computeXPath(e.target)]);
-                //sendEventsToServerSync();  
-            }, true);
-
+            console.log("Listeners have been set up");
             function sendEventsToServerSync() {
+                console.log("Sending the respective event to the server");
                 if (window.isSending || window.recordedEvents.length === 0) {
                     return; // Do not send if a send operation is in progress or if there are no events to send
                 }
                 window.isSending = true;
 
                 var xhr = new XMLHttpRequest();
-                xhr.open("POST", 'http://localhost:5000/save', true);
+                xhr.open("POST", 'http://localhost:9000/save', true);
                 xhr.onreadystatechange = function() {
                     if (xhr.readyState == 4) {
                         if (xhr.status == 200) {
@@ -202,6 +217,7 @@ def set_up_listeners():
 
 
             document.addEventListener('click', function(e) {
+                console.log("You clicked right now ...");
                 if (window.isPaused) return;
                 var xpath = computeXPath(e.target);
                 window.recordedEvents.push(['click', Date.now(), xpath]);
@@ -231,7 +247,7 @@ def set_up_listeners():
 
             document.addEventListener('scroll', function(e) {
                 if (window.isPaused) return;
-                var xpath = computeXPathOfTopVisibleElement();
+                var xpath = computeXPathOfElementAt20Percent()
                 window.recordedEvents.push(['scroll', Date.now(), xpath]);
                 sendEventsToServerSync();  
             });
@@ -252,36 +268,57 @@ def set_up_listeners():
 
             function computeXPath(element) {
                 if (!element) return null;
-                if (element.id) return `//*[@id="${element.id}"]`;
-                var attributes = element.attributes;
-                var path = '';
-                for (var i = 0; i < attributes.length; i++) {
-                    var attr = attributes[i];
-                    if (attr.specified && attr.name !== 'id' && attr.name !== 'class') {
-                        path = `//${element.tagName.toLowerCase()}[@${attr.name}='${attr.value}']`;
-                        if (document.evaluate("count(" + path + ")", document, null, XPathResult.ANY_TYPE, null).numberValue === 1) {
-                            return path;
+
+                // Function to check if an element is uniquely identified by an attribute
+                function isUniqueByAttribute(element, attrName) {
+                    let attrValue = element.getAttribute(attrName);
+                    if (!attrValue) return false;
+                    let xpath = `//${element.tagName.toLowerCase()}[@${attrName}='${attrValue}']`;
+                    return document.evaluate("count(" + xpath + ")", document, null, XPathResult.ANY_TYPE, null).numberValue === 1;
+                }
+
+                // Check for unique identifying attributes
+                const attributes = ['id', 'name', 'type', 'value', 'title', 'alt'];
+                for (let attr of attributes) {
+                    if (isUniqueByAttribute(element, attr)) {
+                        return `//${element.tagName.toLowerCase()}[@${attr}='${element.getAttribute(attr)}']`;
+                    }
+                }
+
+                // Check for unique class
+                if (element.className) {
+                    let classes = element.className.split(/\s+/);
+                    for (let cls of classes) {
+                        let xpath = `//${element.tagName.toLowerCase()}[contains(@class, '${cls}')]`;
+                        if (document.evaluate("count(" + xpath + ")", document, null, XPathResult.ANY_TYPE, null).numberValue === 1) {
+                            return xpath;
                         }
                     }
                 }
+
+                // Building relative XPath
                 var paths = [];
-                for (; element && element.nodeType === 1; element = element.parentNode) {
-                    var index = 0;
-                    var sibling = element.previousSibling;
-                    for (; sibling; sibling = sibling.previousSibling) {
-                        if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
+                for (var parent = element; parent && parent.nodeType === 1; parent = parent.parentNode) {
+                    let index = 1;
+                    for (var sibling = parent.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
+                        if (sibling.nodeType === 1 && sibling.tagName === parent.tagName) {
                             index++;
                         }
                     }
-                    var tagName = element.tagName.toLowerCase();
-                    var pathIndex = (index ? "[" + (index + 1) + "]" : "");
-                    paths.splice(0, 0, tagName + pathIndex);
-                    if (element.parentElement && element.parentElement.id) {
-                        return `//*[@id="${element.parentElement.id}"]/${paths.join("/")}`;
+                    let tagName = parent.tagName.toLowerCase();
+                    let pathIndex = (index > 1 ? `[${index}]` : '');
+                    paths.unshift(tagName + pathIndex);
+
+                    // Use parent with id as a root
+                    if (parent.id) {
+                        return `//*[@id="${parent.id}"]/${paths.join('/')}`;
                     }
                 }
-                return paths.length ? "/" + paths.join("/") : null;
+
+                return paths.length ? `/${paths.join('/')}` : null;
             }
+
+
         }
     """
     
@@ -296,7 +333,7 @@ def backup_events_to_server():
         response = driver.execute_script("""
             // Create a synchronous XMLHttpRequest to ensure that the function waits for the response
             var xhr = new XMLHttpRequest();
-            xhr.open('POST', 'http://localhost:5000/save', false);  // false for synchronous request
+            xhr.open('POST', 'http://localhost:9000/save', false);  // false for synchronous request
             xhr.setRequestHeader('Content-Type', 'application/json');
 
             var tempRecordedEvents = [...window.recordedEvents];
@@ -423,7 +460,7 @@ def stop_and_show_records():
 
             server_events = driver.execute_script("""
                 var request = new XMLHttpRequest();
-                request.open('GET', 'http://localhost:5000/retrieve', false);  // false for synchronous
+                request.open('GET', 'http://localhost:9000/retrieve', false);  // false for synchronous
                 request.send(null);
                 if (request.status === 200) {
                     return request.responseText;
@@ -554,8 +591,7 @@ def stop_and_show_records():
             #print(f'input : xpath="{combined_xpath}" value="{combined_input}" ')
 
         stop_thread_flag.set()
-        #driver.quit()
-
+        driver.quit()
 
 
         def update_wait_times(input_str):
@@ -600,17 +636,34 @@ def stop_and_show_records():
 
         gpt_input = cleaned_gpt_input_1
         
+        completed_code= ""
         while len(gpt_input) > 0:
             gpt_input_string = ""
-            input_count = 12 if len(gpt_input) > 11 else len(gpt_input)
+            input_count = 10 if len(gpt_input) > 9 else len(gpt_input)
             for i in range(input_count):
                 gpt_input_string += gpt_input.pop(0)
             # Call GPT-4 script with formatted actions
             gpt_input_string = gpt_input_string[:-2]
             #print("\n\n")
-            print(f"The gpt_input_string is : \n{gpt_input_string}")
-            print("\n\n\n The PAF code equavalent is : \n\n")
-            get_PAF_code(gpt_input_string)
+            print(f"The gpt_input_string is : \n{gpt_input_string}\n\n")
+            #print("\n\n\n The PAF code equavalent is : \n\n")
+            completed_code += get_PAF_code(gpt_input_string) + "\n\n"
+        
+
+        flows_code = get_flow_code(completed_code)
+
+        flow_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject/sample_xml/flow.xml"
+        activity_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject/sample_xml/activity.xml"
+
+        completed_code = "<activities>\n\n" + completed_code + "</activities>"
+        with open(activity_path, 'a') as f:
+            f.write(completed_code)
+
+
+        flows_code = "<flows>\n\n" + flows_code + "\n\n</flows>"
+        with open(flow_path, 'a') as f:
+            f.write(flows_code)
+
 
         
     
@@ -653,6 +706,22 @@ resume_btn.grid(row=1, column=1, padx=5, pady=(10, 0))
 
 # Second part of the code: Interfacing with GPT-4 for PAF code generation
 
+
+def get_flow_code(formatted_actions):
+    deployment_id, gpt_model, embedding_model, openai = get_token()
+
+    query_final = ""
+    for action_item in recorded_actions:
+        single_action = action_item[0] + " : " + action_item[1]
+        query_final += single_action + ',\n' 
+
+    formatted_response = gpt_call_flow(openai, gpt_model, deployment_id, formatted_actions)
+    #print(f"\n\n\n The queries are : {query_final}")
+    #print("\n\n\n The PAF code equavalent is : \n\n")
+    print(formatted_response.choices[0]["message"]["content"])
+    return formatted_response.choices[0]["message"]["content"]
+
+
 def get_PAF_code(formatted_actions):
     deployment_id, gpt_model, embedding_model, openai = get_token()
 
@@ -665,6 +734,8 @@ def get_PAF_code(formatted_actions):
     #print(f"\n\n\n The queries are : {query_final}")
     #print("\n\n\n The PAF code equavalent is : \n\n")
     print(formatted_response.choices[0]["message"]["content"])
+    return formatted_response.choices[0]["message"]["content"]
+
 
 def gpt_call(openai, gpt_model, deployment_id, question):
     # Define the prompt for GPT-4
@@ -687,6 +758,11 @@ def gpt_call(openai, gpt_model, deployment_id, question):
               Now the content inside the activity tag would be the individual functionality. Each functionality
               be a simple tag like <click xpath=""></click>, <input xpath="" value=""></input> which form the
               building blocks of PAF. Now let us explore some PAF tags with their corresponding functionality.
+
+              Note : Before an <input>, <click>, and <dblClick> tag, always put a <WaitTillElement> tag. Its format is :
+              <WaitTillElement xpath="xpath_of_following_tag" waitcondition="click"></WaitTillElement>
+              Here, the value of the xpath attribute should be the xpath of the tag right after the <WaitTillElement>.
+              The waitcondition value should be kept as click everywhere.
 
               To do a click action :
               <click xpath="xpath_value"></click>
@@ -715,39 +791,10 @@ def gpt_call(openai, gpt_model, deployment_id, question):
               <scroll xpath="xpath_value"></scroll>
               Where xpath is the element to be scrolled to.
 
-              To get the text of an element :
-              <getText xpath="xpath_value" variable="variable_name"></getText>
-              The xpath attribute represents the xpath of the element whose text is to be read.
-              The variable attribute represents an appropriate name for the variable in which the text is to be 
-              stored. If there are multiple variables in a single activity, each variable name must be unique.
-
-              Sometimes, some values will be required to be saved in order to be used in other tags like
-              validation, etc. This is the variable tag : 
-              <variable keyName="variable_name" value="variable_value">
-              Here, keyName represents an appropriate name for the variable with respect to its intent for storing
-              or the content stored in it. 
-              value attribute represents the value of the variable stored. When the value of another variable is to
-              be called, it can be called in an attribute in the format - attribute equals dollar sign open and close curly 
-              braces with the variable named enclosed in the open and closed curly braces.
-
-              To perform validations, the validation tag is used in conjunctions with a valGroup.
-              First, we need to define the appropriate valGroup which will be then referenced by the validation.
-              Let us look at the various valGroups - 
-                1. To validate that a certain element exists in the UI :
-                   <valGroup groupId="group-id">
-                      <validate xpath="xpath_value" exists="true/false" passMsg="An appropriate pass message to indicate why this is considered as a passed case" failMsg="A corresponding fail message to explain in case the condition fails">
-                   </valGroup
-                   groupId is an appropriate and unique name given to the valGroup     
-              
-                   Here xpath represents the xpath of the element we want to verify in the UI.
-                   exists can be equal to true or false, depending on whether we want to check if the element exists or not in the UI.
-                   passMsg should be the message in case the condition passes to explain what is being validated.
-                   failMsg should be the message in case the condition fails.
-
-              Include the valGroup outside of the <activity> ONLY. To call the valGroup within the activity, use the validation tag :
-                <validation valGroupIds="group-id">
-              Here, the valGroupIds must have the same group id as the vlGroup it is referencing.
-
+            
+              If there is a tag called <validation> given, include it as in the script in the given order. If a corresponding <valGroup> tag with a <validate> enclosed
+              in it appears, include that outside of the activity.
+              If a tag called <getText> appears, include that as is in the script in the given order.
               """)
     
     # Make the API call to GPT-4
@@ -842,8 +889,24 @@ def gpt_call_2(openai, gpt_model, deployment_id, question):
 def gpt_call_flow(openai, gpt_model, deployment_id, question):
     # Define the prompt for GPT-4
     prompt = (f"""
-                Convert the given activities from the PAF framework into flows to be used.
+                Convert the given activities from the PAF framework into flows to be used. You will receive some PAF code which is an xml framework. It has some xml enclosed in
+              an <activity> tag. It would look like this :
+                <activity id="id_name>
+                    ...
+                </activity>.
+                Now the 'id' attribute in the <activity> tag represents the id name of the activity. You need to extract the ids of the activities you receive in your input to convert
+              them into the respective flows. The flows would look like this :
 
+              <flow id="flow_id_name">
+                <call activity="activity_id" xml="./sample_xml/activity.xml"></call>
+                ...
+              </flow>
+
+              Now I will explain how to create this flow. The flow_id_name represents the id name of the flow. Give a relevant name to the flow according to the activity id names it encapsulates.
+              For each activity present in the code you receive, you have to call the respective activity in the <flow> by using the <call> as shown in the above example. An attribute in the
+              <call> tag is activity which is where you assign the respective activity id name. For example, if there are 3 <activity> inside the given code, extract their id names and put 3
+              <call> tags with the attribute activity equaling the respective activity id. Leave the xml attribute as it is. 
+              Return ONLY the flow code. 
               """)
     
     # Make the API call to GPT-4
@@ -866,3 +929,54 @@ def gpt_call_flow(openai, gpt_model, deployment_id, question):
 # Start the tkinter main loop
 if __name__ == "__main__":
     root.mainloop()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+
+To get the text of an element :
+              <getText xpath="xpath_value" variable="variable_name"></getText>
+              The xpath attribute represents the xpath of the element whose text is to be read.
+              The variable attribute represents an appropriate name for the variable in which the text is to be 
+              stored. If there are multiple variables in a single activity, each variable name must be unique.
+
+              Sometimes, some values will be required to be saved in order to be used in other tags like
+              validation, etc. This is the variable tag : 
+              <variable keyName="variable_name" value="variable_value">
+              Here, keyName represents an appropriate name for the variable with respect to its intent for storing
+              or the content stored in it. 
+              value attribute represents the value of the variable stored. When the value of another variable is to
+              be called, it can be called in an attribute in the format - attribute equals dollar sign open and close curly 
+              braces with the variable named enclosed in the open and closed curly braces.
+
+              To perform validations, the validation tag is used in conjunctions with a valGroup.
+              First, we need to define the appropriate valGroup which will be then referenced by the validation.
+              Let us look at the various valGroups - 
+                1. To validate that a certain element exists in the UI :
+                   <valGroup groupId="group-id">
+                      <validate xpath="xpath_value" exists="true/false" passMsg="An appropriate pass message to indicate why this is considered as a passed case" failMsg="A corresponding fail message to explain in case the condition fails">
+                   </valGroup
+                   groupId is an appropriate and unique name given to the valGroup     
+              
+                   Here xpath represents the xpath of the element we want to verify in the UI.
+                   exists can be equal to true or false, depending on whether we want to check if the element exists or not in the UI.
+                   passMsg should be the message in case the condition passes to explain what is being validated.
+                   failMsg should be the message in case the condition fails.
+
+              Include the valGroup outside of the <activity> ONLY. To call the valGroup within the activity, use the validation tag :
+                <validation valGroupIds="group-id">
+              Here, the valGroupIds must have the same group id as the vlGroup it is referencing.
+              
+              
+              """

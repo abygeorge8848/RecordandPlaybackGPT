@@ -26,7 +26,8 @@ def retrieve_events():
 
 
 def run_flask_app():
-    serve(app, host='0.0.0.0', port=5000)
+    print("The flask application has been successfully started!")
+    serve(app, host='0.0.0.0', port=9000)
 
 if __name__ == '__main__':
     flask_thread = threading.Thread(target=run_flask_app)

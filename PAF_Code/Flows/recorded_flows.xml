@@ -1,0 +1,7 @@
+<flows>
+
+<flow id="login_flow">
+    <call activity="login" xml="./sample_xml/activity.xml"></call>
+</flow>
+
+</flows>
