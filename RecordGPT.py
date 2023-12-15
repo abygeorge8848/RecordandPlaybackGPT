@@ -15,10 +15,11 @@ from selenium.common.exceptions import TimeoutException
 import time
 import math
 import json
-import threading
-import warnings
 import urllib3
-import os
+from tkinter import ttk
+import threading
+import re
+from RunPAF import run_file
 
 
 from openai_auth import get_token
@@ -33,6 +34,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Initialize list to store recorded actions
 recorded_actions = []
+
 
 paused_time_total= 0
 paused_at = None
@@ -63,6 +65,34 @@ chrome_options.add_experimental_option("prefs", prefs)
 service = Service(ChromeDriverManager().install())
 driver = webdriver.Chrome(service=service, options=chrome_options)
 actions = ActionChains(driver)
+
+
+
+
+###########################################  GUI SET UP  #############################################
+
+# GUI setup
+root = tk.Tk()
+root.title("Action Recorder")
+root.geometry("500x250")  # Adjust the initial window size for a better look
+
+# Configure style
+font_main = ("Arial", 12)
+font_button = ("Arial", 10)
+
+# Main frame
+frame = tk.Frame(root, padx=30, pady=30)
+frame.pack(padx=20, pady=20, expand=True, fill=tk.BOTH)
+
+# URL components
+url_label = tk.Label(frame, text="Enter URL:", font=font_main)
+url_label.grid(row=0, column=0, sticky=tk.W, pady=(0, 15))
+
+url_entry = tk.Entry(frame, width=40, font=font_main)
+url_entry.grid(row=0, column=1, columnspan=2, pady=(0, 15), sticky=tk.W)
+
+###########################################   GUI SET UP     ###########################################
+
 
 
 def process_instruction():
@@ -215,19 +245,19 @@ def set_up_listeners():
                 xhr.send(JSON.stringify(window.recordedEvents));
             }
 
+            document.addEventListener('dblclick', function(e) {
+                console.log("Double Click ...");
+                if (window.isPaused) return;
+                var xpath = computeXPath(e.target);
+                window.recordedEvents.push(['dblClick', Date.now(), xpath]);
+                sendEventsToServerSync();  
+            });
 
             document.addEventListener('click', function(e) {
                 console.log("You clicked right now ...");
                 if (window.isPaused) return;
                 var xpath = computeXPath(e.target);
                 window.recordedEvents.push(['click', Date.now(), xpath]);
-                sendEventsToServerSync();  
-            });
-
-            document.addEventListener('dblclick', function(e) {
-                if (window.isPaused) return;
-                var xpath = computeXPath(e.target);
-                window.recordedEvents.push(['dblClick', Date.now(), xpath]);
                 sendEventsToServerSync();  
             });
 
@@ -286,7 +316,7 @@ def set_up_listeners():
                 }
 
                 // Check for unique class
-                if (element.className) {
+                if (element.className && typeof element.className === 'string') { // Added check for string type
                     let classes = element.className.split(/\s+/);
                     for (let cls of classes) {
                         let xpath = `//${element.tagName.toLowerCase()}[contains(@class, '${cls}')]`;
@@ -316,7 +346,8 @@ def set_up_listeners():
                 }
 
                 return paths.length ? `/${paths.join('/')}` : null;
-            }
+            }           
+
 
 
         }
@@ -354,7 +385,6 @@ def backup_events_to_server():
 
 
 
-
 def monitor_page_load(stop_thread_flag):
     global driver
     old_url = driver.current_url
@@ -376,13 +406,14 @@ def monitor_page_load(stop_thread_flag):
             break
 
 
-
 stop_thread_flag = threading.Event()
+
 
 # Loop to continuously check for user inactivity
 def start_recording():
-    global driver, actions, start_time, last_time, stop_thread_flag
+    global driver, actions, start_time, last_time, stop_thread_flag, init_url
     url = url_entry.get()
+    init_url = url
     driver = webdriver.Chrome(options=chrome_options)
     driver.get(url)
     actions = ActionChains(driver)
@@ -439,8 +470,14 @@ def show_instruction_entry():
 
 
 
+
+
+
 # Modify stop_and_show_records to call GPT-4 script
 def stop_and_show_records():
+
+    start_progress_bar()
+
     #print("\n The recording has stopped!\n")
     #print("\n Preparing to back up the last loaded data ... \n")
     #backup_events_to_server()
@@ -639,7 +676,7 @@ def stop_and_show_records():
         completed_code= ""
         while len(gpt_input) > 0:
             gpt_input_string = ""
-            input_count = 10 if len(gpt_input) > 9 else len(gpt_input)
+            input_count = 8 if len(gpt_input) >= 8 else len(gpt_input)
             for i in range(input_count):
                 gpt_input_string += gpt_input.pop(0)
             # Call GPT-4 script with formatted actions
@@ -654,39 +691,104 @@ def stop_and_show_records():
 
         flow_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject/sample_xml/flow.xml"
         activity_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject/sample_xml/activity.xml"
+        init_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject/src/init.properties"
 
         completed_code = "<activities>\n\n" + completed_code + "</activities>"
-        with open(activity_path, 'a') as f:
+        with open(activity_path, 'w') as f:
             f.write(completed_code)
 
 
         flows_code = "<flows>\n\n" + flows_code + "\n\n</flows>"
-        with open(flow_path, 'a') as f:
+        with open(flow_path, 'w') as f:
             f.write(flows_code)
 
 
-        
-    
+        flow_id=""
+        pattern = r'<flow id="([^"]+)"'
+        match = re.search(pattern, flows_code)
+        if match:
+            flow_id = match.group(1)
+            print(f"\n\nThe flow is : {flow_id} \n\n")
+        else:
+            print("ERROR : Did not find a flow id")
 
-# GUI setup
-root = tk.Tk()
-root.title("Action Recorder")
-root.geometry("500x250")  # Adjust the initial window size for a better look
+        with open(init_path, 'r') as file:
+            lines = file.readlines()
 
-# Configure style
-font_main = ("Arial", 12)
-font_button = ("Arial", 10)
+        # Flag to check if 'flow.ids=' has been found
+        found_flow_ids = False
 
-# Main frame
-frame = tk.Frame(root, padx=30, pady=30)
-frame.pack(padx=20, pady=20, expand=True, fill=tk.BOTH)
+        # Iterate through the lines and modify as needed
+        for i in range(len(lines)):
+            if lines[i].startswith('flow.ids='):
+                if found_flow_ids:
+                    # Add a '#' at the start of the line to comment it out
+                    lines[i] = '#' + lines[i]
+                else:
+                    found_flow_ids = True
+            elif not found_flow_ids:
+                # If 'flow.ids=' hasn't been found yet, add a new line with 'flow.ids='
+                lines.insert(i, 'flow.ids=\n')
+                found_flow_ids = True
 
-# URL components
-url_label = tk.Label(frame, text="Enter URL:", font=font_main)
-url_label.grid(row=0, column=0, sticky=tk.W, pady=(0, 15))
 
-url_entry = tk.Entry(frame, width=40, font=font_main)
-url_entry.grid(row=0, column=1, columnspan=2, pady=(0, 15), sticky=tk.W)
+        for i in range(len(lines)):
+            if lines[i].startswith('flow.ids=') and not lines[i].startswith('#flow.ids='):
+                # Replace the value of the uncommented 'flow.ids=' line
+                lines[i] = f'flow.ids={flow_id}\n'
+                break  # Stop processing the file after modifying the line
+
+        # Iterate through the lines and find the 'start.url=' line
+        for i in range(len(lines)):
+            if lines[i].startswith('start.url='):
+                # Replace the value of the 'start.url=' line
+                lines[i] = f'start.url={init_url}\n'
+                break  # Stop processing the file after modifying the line
+
+                # Write the modified content back to the file
+
+        with open(init_path, 'w') as file:
+            file.writelines(lines)
+            # Explicitly flush and close the file (optional, as 'with open' should handle it)
+            file.flush()
+            file.close()
+            print("Finished writing to init.properties")
+     
+
+        complete_progress_bar()
+
+
+
+
+
+def start_progress_bar():
+    print("\n\n Being called")
+    progress_bar['value'] = 0
+    print("Progress bar value assignment")
+    progress_bar.grid()  # Show the progress bar
+    print("Showed the progress bar")
+    run_script_btn.grid_remove()  # Hide 'Run your script' button
+    increment_progress_bar()  # Start incrementing the progress bar
+
+
+def increment_progress_bar():
+    max_duration = 30  # Assuming the task takes 30 seconds
+    step_duration = max_duration / 100  # Split the duration into 100 steps
+    if progress_bar['value'] < 90:
+        progress_bar['value'] += 1
+        root.after(int(step_duration * 1000), increment_progress_bar)  # Schedule the next increment
+
+
+def complete_progress_bar():
+    progress_bar['value'] = 100  # Ensure the progress bar is complete
+    progress_bar.grid_remove()  # Hide the progress bar
+    run_script_btn.grid()  # Show 'Run your script' button
+
+
+def run_script():
+    print("\n I'll try to run your PAF script now! \n\n")
+    run_file()
+
 
 # Buttons
 button_frame = tk.Frame(frame)
@@ -704,7 +806,20 @@ pause_btn.grid(row=1, column=0, padx=5, pady=(10, 0))
 resume_btn = tk.Button(button_frame, text="Resume", command=resume_recording, width=12, font=font_button)
 resume_btn.grid(row=1, column=1, padx=5, pady=(10, 0))
 
+
+#progress bar
+progress_bar = ttk.Progressbar(frame, orient="horizontal", length=200, mode="determinate")
+progress_bar.grid(row=2, column=0, columnspan=3, pady=10)
+progress_bar.grid_remove()
+
 # Second part of the code: Interfacing with GPT-4 for PAF code generation
+run_script_btn = tk.Button(frame, text="Run your script", command=run_script, font=font_button)
+run_script_btn.grid(row=3, column=0, columnspan=3, pady=10)
+run_script_btn.grid_remove()
+
+
+
+########################################  GPT SECTION  ###########################################
 
 
 def get_flow_code(formatted_actions):
@@ -774,11 +889,6 @@ def gpt_call(openai, gpt_model, deployment_id, question):
               xpath attribute is the xpath of the textbox you want to enter your text in.
               The value attribute represents the text you want to enter in the textfield.
 
-              To wait for a specified amount of time in ms :
-              <wait time="time_in_ms"></wait>
-              Where the time attribute is the time in ms. A wait tag should not appear consecutively. If such an input appears, 
-              just add up the wait times and return it as one wait tag with the combined wait time.
-
               To wait till the page has loaded :
               <WaitForPageLoad/>
               A wait tag should not appear immediately before or after a WaitForPageLoad.
@@ -792,8 +902,8 @@ def gpt_call(openai, gpt_model, deployment_id, question):
               Where xpath is the element to be scrolled to.
 
             
-              If there is a tag called <validation> given, include it as in the script in the given order. If a corresponding <valGroup> tag with a <validate> enclosed
-              in it appears, include that outside of the activity.
+              IF there is a tag called <validation> given in the input, include it as in the script in the given order. 
+              If a <valGroup> tag with a <validate> enclosed in it appears, include that outside of the activity.
               If a tag called <getText> appears, include that as is in the script in the given order.
               """)
     
@@ -891,15 +1001,26 @@ def gpt_call_flow(openai, gpt_model, deployment_id, question):
     prompt = (f"""
                 Convert the given activities from the PAF framework into flows to be used. You will receive some PAF code which is an xml framework. It has some xml enclosed in
               an <activity> tag. It would look like this :
-                <activity id="id_name>
+              <activities>
+                <activity id="id_name_1">
                     ...
-                </activity>.
+                </activity>
+                <activity id="id_name_2">
+                    ...
+                </activity>
+                .
+                .
+                .
+              </activities>
                 Now the 'id' attribute in the <activity> tag represents the id name of the activity. You need to extract the ids of the activities you receive in your input to convert
               them into the respective flows. The flows would look like this :
 
               <flow id="flow_id_name">
-                <call activity="activity_id" xml="./sample_xml/activity.xml"></call>
-                ...
+                <call activity="id_name_1" xml="./sample_xml/activity.xml"></call>
+                <call activity="id_name_2" xml="./sample_xml/activity.xml"></call>
+                .
+                .
+                .
               </flow>
 
               Now I will explain how to create this flow. The flow_id_name represents the id name of the flow. Give a relevant name to the flow according to the activity id names it encapsulates.
