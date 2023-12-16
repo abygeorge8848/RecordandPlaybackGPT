@@ -89,7 +89,7 @@ def get_embedding(text):
 def embed_data(csv_path):
     tdf = pd.read_csv(csv_path)
     
-    tdf['content'] = "{" + tdf.apply(lambda row: ', '.join([f'"{col}": "{val}"' for col, val in row.items()]), axis=1) + "}"
+    tdf['content'] = tdf.apply(lambda row: ', '.join([f"{val}" for col, val in row.items()]), axis=1)
 
     # This is the call to openai
     tdf['content_vector'] = tdf.content.apply(lambda x: get_embedding(x))
@@ -97,7 +97,6 @@ def embed_data(csv_path):
     # Just get the relevant columns
     df = tdf[['content','content_vector']]
     df.insert(0, 'vector_id', range(1, len(df) + 1))
-
     return df
 
 
@@ -123,4 +122,4 @@ def pandas_series_to_list(x):
 
 
 if __name__ == '__main__':
-    sys.exit(main("roche-irt", "./documents/csv/Roche IRT questions_Final_Sep2023.csv"))
+    sys.exit(main("paf-dict", "./embed_documents/paf-dict.csv"))

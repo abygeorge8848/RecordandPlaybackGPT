@@ -1,15 +1,16 @@
-﻿To get the text of any element in the UI : getText
-To repeat any action a particular number of times or loop over some actions : loop
-"To check whether any element, text, etc exists or is present or to validate an elements presence use : validate-exists"
-"To check whether any element, text, etc DOES NOT exist or is NOT present or to validate an element is NOT present use : validate-not-exists"
-To check or execute any action conditionally : if
-"To mutate any stored text or extract some value from stored text, do arithemetic operations, etc : variable-expression"
-To compare between 2 text values to check whether they are equal : validation-equals
-To compare between 2 text values to check whether they are not equal : validation-not-equals
-To compare between 2 number values to check whether they are equal : validation-num-equals
-To compare between 2 number values to check whether they are NOT equal : validation-num-not-equals
-To compare between 1 num value is less than another : validation-num-le
-To compare between 1 num value is greater than another : validation-num-ge
-To check whether a text value is contained in another : validation-contains
+﻿Functionalit description : functionality name 
+"To get the text of any element in the UI and store it in a variable, use the functionality named : getText"
+"To repeat any action a particular number of times or loop over some actions, use the functionality named : loop"
+"To check whether any element, text, etc exists or is present or to validate an elements presence, use the functionality named : validate-exists"
+"To check whether any element, text, etc does not exist or is not present or to validate an element is not present or verify it doesn’t exist, use the functionality named : validate-not-exists"
+"To check or execute any action conditionally, use the functionality named : if-condition"
+"To mutate any stored text or extract some value from stored text, do arithemetic operations, etc, use the functionality named : variable-expression"
+"To compare between 2 text values to check whether they are equal, use the functionality named : validation-equals"
+"To compare between 2 text values to check whether they are not equal, use the functionality named : validation-not-equals"
+"To compare between 2 number values to check whether they are equal, use the functionality named : validation-num-equals"
+"To compare between 2 number values to check whether they are not equal , use the functionality named : validation-num-not-equals"
+"To compare between 1 num value is less than another, use the functionality named : validation-num-le"
+"To compare between 1 num value is greater than another, use the functionality named : validation-num-ge"
+"To check whether a text value is contained in another, use the functionality named : validation-contains"
 To check whether a text value starts with another text value : validation-starts-with
-To check whether a text value ends with another : validation-ends-with
+"To check whether a text value ends with another, use the functionality named : validation-ends-with"

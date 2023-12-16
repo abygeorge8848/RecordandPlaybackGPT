@@ -21,6 +21,7 @@ import threading
 import re
 from RunPAF import run_file
 from reformat_paf import reformat_paf_activity, reformat_paf_flow
+from gpt import align_input_steps
 
 
 from openai_auth import get_token
@@ -101,11 +102,10 @@ def process_instruction():
     deployment_id, gpt_model, embedding_model, openai = get_token()
 
     instruction = instruction_entry.get()
-    raw_response = gpt_call_2(openai, gpt_model, deployment_id, instruction)
+    tag_found = align_input_steps(instruction)
     
-    tag_found = raw_response.choices[0]["message"]["content"]
     # If there's a match, it indicates the user wants to retrieve text
-    if "getText" in tag_found or  "validation" in tag_found:
+    if "getText" in tag_found or  "validate-exists" in tag_found or "validate-not-exists" in tag_found: 
         driver.execute_script("""
             document.addEventListener('click', function getTextEvent(e) {
                 e.preventDefault();
@@ -117,22 +117,144 @@ def process_instruction():
             });
 
             function computeXPath(element) {
-                var paths = [];
-                for (; element && element.nodeType == 1; element = element.parentNode) {
-                    var index = 0;
-                    for (var sibling = element.previousSibling; sibling; sibling = sibling.previousSibling) {
-                        if (sibling.nodeType == 1 && sibling.tagName == element.tagName)
-                            index++;
+                if (!element) return null;
+
+                function escapeXPathString(str) {
+                    if (!str.includes("'")) return `'${str}'`;
+                    if (!str.includes('"')) return `"${str}"`;
+                    let parts = str.split("'");
+                    let xpathString = "concat(";
+                    for (let i = 0; i < parts.length; i++) {
+                        xpathString += `'${parts[i]}'`;
+                        if (i < parts.length - 1) {
+                            xpathString += `, "'", `;
+                        }
                     }
-                    var tagName = element.tagName.toLowerCase();
-                    var pathIndex = (index ? "[" + (index + 1) + "]" : "");
-                    paths.splice(0, 0, tagName + pathIndex);
+                    xpathString += ")";
+
+                    return xpathString;
                 }
-                return paths.length ? "/" + paths.join("/") : null;
-            }
+
+                function isUniqueByAttribute(element, attrName) {
+                    let attrValue = element.getAttribute(attrName);
+                    if (!attrValue) return false;
+                    let xpath = `//${element.tagName.toLowerCase()}[@${attrName}=${escapeXPathString(attrValue)}]`;
+                    return document.evaluate("count(" + xpath + ")", document, null, XPathResult.ANY_TYPE, null).numberValue === 1;
+                }
+
+                function isUniqueByText(element) {
+                    let text = element.textContent.trim();
+                    if (!text) return false;
+                    let xpath = `//${element.tagName.toLowerCase()}[contains(text(), ${escapeXPathString(text)})]`;
+                    return document.evaluate("count(" + xpath + ")", document, null, XPathResult.ANY_TYPE, null).numberValue === 1;
+                }
+
+                function getChildRelativeXPath(child, parent) {
+                    var path = '';
+                    for (var current = child; current && current !== parent; current = current.parentNode) {
+                        let index = 1;
+                        for (var sibling = current.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
+                            if (sibling.nodeType === 1 && sibling.tagName === current.tagName) {
+                                index++;
+                            }
+                        }
+                        let tagName = current.tagName.toLowerCase();
+                        let pathIndex = (index > 1 ? `[${index}]` : '');
+                        path = '/' + tagName + pathIndex + path;
+                    }
+                    return path;
+                }
+
+                // Function to generate a unique XPath using parent attributes
+                function generateRelativeXPath(element) {
+                    var paths = [];
+                    var currentElement = element;
+
+                    while (currentElement && currentElement.nodeType === 1) {
+                        let uniqueAttributeXPath = getUniqueAttributeXPath(currentElement);
+                        if (uniqueAttributeXPath) {
+                            paths.unshift(uniqueAttributeXPath);
+                            break; // Break the loop if a unique attribute is found
+                        }
+
+                        let tagName = currentElement.tagName.toLowerCase();
+                        let index = 1;
+                        for (let sibling = currentElement.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
+                            if (sibling.nodeType === 1 && sibling.tagName === currentElement.tagName) {
+                                index++;
+                            }
+                        }
+                        let pathIndex = (index > 1 ? `[${index}]` : '');
+                        paths.unshift(`${tagName}${pathIndex}`);
+
+                        currentElement = currentElement.parentNode;
+                    }
+
+                    return paths.length ? `//${paths.join('/')}` : null;
+                }
+
+                function getUniqueAttributeXPath(element) {
+                    const attributes = ['id', 'name', 'type', 'value', 'title', 'alt', 'col-id', 'colid', 'ref', 'role', 'ng-bind'];
+                    for (let attr of attributes) {
+                        if (isUniqueByAttribute(element, attr)) {
+                            return `${element.tagName.toLowerCase()}[@${attr}='${element.getAttribute(attr)}']`;
+                        }
+                    }
+                    return null;
+                }    
+
+                // Special handling for svg elements
+                if (element.tagName.toLowerCase() === 'svg' || element.tagName.toLowerCase() === 'path') {
+                    let parentElement = element.parentElement;
+                    if (parentElement) {
+                        let parentXPath = computeXPath(parentElement);
+                        if (parentXPath) {
+                            if (parentXPath.startsWith('//')){
+                                return parentXPath;
+                            } else if (parentXPath.startsWith('/')){
+                                return '/' + parentXPath;
+                            } else {
+                                return '//' + parentXPath;
+                            }	
+                        }
+                    }
+                    return null;
+                }
+
+                const attributes = ['id', 'name', 'type', 'value', 'title', 'alt', 'col-id', 'colid', 'ref', 'role', 'ng-bind'];
+                for (let attr of attributes) {
+                    if (isUniqueByAttribute(element, attr)) {
+                        return `//${element.tagName.toLowerCase()}[@${attr}='${element.getAttribute(attr)}']`;
+                    }
+                }
+
+                if (element.className && typeof element.className === 'string') {	
+                    let classes = element.className.trim().split(/\s+/);
+                    let combinedClassSelector = classes.join('.');
+                    let xpath = `//${element.tagName.toLowerCase()}[contains(@class, '${combinedClassSelector}')]`;
+                    if (document.evaluate("count(" + xpath + ")", document, null, XPathResult.ANY_TYPE, null).numberValue === 1) {
+                        return xpath;
+                    }
+                }
+
+                if (element.tagName.toLowerCase() !== 'i' && isUniqueByText(element)) {
+                    return `//${element.tagName.toLowerCase()}[contains(text(), ${escapeXPathString(element.textContent.trim())})]`;
+                }
+
+                return generateRelativeXPath(element);
+                }
         """)
+
+        tag_name = ""
         if "getText" in tag_found:
-            root.after(2000, get_text_instruction)
+            tag_name = "getText"
+        elif "validation-exists" in tag_found:
+            tag_name = "validation-exists"
+        elif "validation-not-exists" in tag_found:
+            tag_name = "validation-not-exists"
+
+        if "getText" in tag_found:
+            root.after(2000, lambda: xpath_instructions(param1, param2))
         elif "validation" in tag_found:
             root.after(2000, validation_instruction)
 
@@ -143,7 +265,7 @@ def process_instruction():
 
 
 
-def get_text_instruction():
+def xpath_instructions():
     xpath = driver.execute_script("return window.clickedElementXPath || '';")
     if xpath:
         js_script = f"""
