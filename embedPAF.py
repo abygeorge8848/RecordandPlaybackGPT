@@ -1,65 +1,126 @@
-from typing import Tuple
-import fitz  # PyMuPDF
-import json
-import redis
-from redis.commands.search.field import TextField, VectorField
-from redis.commands.search.indexDefinition import IndexDefinition, IndexType
+from typing import List, Iterator
+import pandas as pd
 import numpy as np
-import openai  # Make sure to install openai Python client and set up your API key
+import sys
 
 from openai_auth import get_token
 
+# Redis client library for Python
+import redis
+from redis.commands.search.indexDefinition import (
+    IndexDefinition,
+    IndexType
+)
+from redis.commands.search.query import Query
+from redis.commands.search.field import (
+    TextField,
+    VectorField
+)
+
 # Constants
-REDIS_HOST = "localhost"
+REDIS_HOST =  "localhost"
 REDIS_PORT = 6379
-REDIS_PASSWORD = ""
-INDEX_NAME = "paf-index"
-PREFIX = "paf"
-VECTOR_DIM = 768  # Assuming the dimension of embeddings
-DISTANCE_METRIC = "COSINE"
+REDIS_PASSWORD = "" # default for passwordless Redis
 
-def extract_text(pdf_path: str) -> str:
-    text = ""
-    with fitz.open(pdf_path) as doc:
-        for page in doc:
-            text += page.get_text()
-    return text
+# Ignore unclosed SSL socket warnings - optional in case you get these errors
+import warnings
+warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
-def get_embedding(text: str) -> np.ndarray:
-    text = text.replace("\n", " ")
-    deployment_id, gpt_model, embedding_model, openai = get_token()
-    response = openai.Embedding.create(input=[text], engine=embedding_model)
-    return np.array(response['data'][0]['embedding'], dtype=np.float32)
+def main(index, csv_path):
 
-def embed_data(pdf_path: str) -> Tuple[str, np.ndarray]:
-    text = extract_text(pdf_path)
-    embedding = get_embedding(text)
-    return text, embedding
-
-def main():
-    pdf_path = "./PAF_User_Manual.pdf"
-    text, embedding = embed_data(pdf_path)
+    df = embed_data(csv_path)
+    df.info(show_counts=True)
+    print(df.keys())
+    print (df.head())
 
     # Connect to Redis
-    client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD)
+    redis_client = redis.Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        password=REDIS_PASSWORD
+    )
 
-    # Ensure connection is successful
-    if not client.ping():
-        print('Failed to connect to Redis')
-        return
+    if redis_client.ping():
+        print('Successfully connected to Redis')
 
-    # Create Redis Search Index
-    try:
-        client.ft(INDEX_NAME).info()
-    except redis.exceptions.ResponseError:
-        fields = [TextField("text"), VectorField("embedding", type="FLOAT32", dim=VECTOR_DIM, metric=DISTANCE_METRIC)]
-        client.ft(INDEX_NAME).create_index(fields, definition=IndexDefinition(prefix=[PREFIX], index_type=IndexType.HASH))
+        df['vector_id'] = df['vector_id'].apply(str)
 
-    # Index document
-    doc_id = f"{PREFIX}:1"
-    client.hset(doc_id, mapping={'text': text, 'embedding': embedding.tobytes()})
+        VECTOR_DIM = len(df['content_vector'][1]) 
+        VECTOR_NUMBER = len(df)               
+        INDEX_NAME = f"{index}-index"           
+        PREFIX = index                     
+        DISTANCE_METRIC = "COSINE"            
 
-    print(f"Document indexed with ID: {doc_id}")
+        # Define RediSearch fields for each of the columns in the dataset
+        content = TextField(name="content")
+        content_embedding = VectorField("content_vector",
+            "FLAT", {
+                "TYPE": "FLOAT32",
+                "DIM": VECTOR_DIM,
+                "DISTANCE_METRIC": DISTANCE_METRIC,
+                "INITIAL_CAP": VECTOR_NUMBER,
+            }
+        )
+        fields = [content, content_embedding]
+
+        # Check if index exists
+        try:
+            redis_client.ft(INDEX_NAME).info()
+            print("Index already exists")
+        except:
+            # Create RediSearch Index
+            redis_client.ft(INDEX_NAME).create_index(
+                fields = fields,
+                definition = IndexDefinition(prefix=[PREFIX], index_type=IndexType.HASH)
+            )
+
+        index_documents(redis_client, PREFIX, df)
+        print(f"Loaded {redis_client.info()['db0']['keys']} documents in Redis search index with name: {INDEX_NAME}")
+
+
+def get_embedding(text):
+    print(f'Generating embedding for {text}')
+    text = text.replace("\n", " ")
+    deployment_id, gpt_model, embedding_model, openai = get_token()
+    return openai.Embedding.create(input = [text], engine=embedding_model)['data'][0]['embedding']
+
+
+def embed_data(csv_path):
+    tdf = pd.read_csv(csv_path)
+    
+    tdf['content'] = "{" + tdf.apply(lambda row: ', '.join([f'"{col}": "{val}"' for col, val in row.items()]), axis=1) + "}"
+
+    # This is the call to openai
+    tdf['content_vector'] = tdf.content.apply(lambda x: get_embedding(x))
+
+    # Just get the relevant columns
+    df = tdf[['content','content_vector']]
+    df.insert(0, 'vector_id', range(1, len(df) + 1))
+
+    return df
+
+
+def index_documents(client: redis.Redis, prefix: str, documents: pd.DataFrame):
+    records = documents.to_dict("records")
+    for doc in records:
+        key = f"{prefix}:{str(doc['vector_id'])}"
+
+        # create byte vectors for title and content
+        content_embedding = np.array(doc["content_vector"], dtype=np.float32).tobytes()
+
+        # replace list of floats with byte vectors
+        doc["content_vector"] = content_embedding
+
+        client.hset(key, mapping = doc)
+
+
+def pandas_series_to_list(x):
+    return x.to_list()
+
+
+
+
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main("roche-irt", "./documents/csv/Roche IRT questions_Final_Sep2023.csv"))

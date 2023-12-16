@@ -20,6 +20,7 @@ from tkinter import ttk
 import threading
 import re
 from RunPAF import run_file
+from reformat_paf import reformat_paf_activity, reformat_paf_flow
 
 
 from openai_auth import get_token
@@ -245,21 +246,35 @@ def set_up_listeners():
                 xhr.send(JSON.stringify(window.recordedEvents));
             }
 
+            var clickTimer;
+            var doubleClickFlag = false;
+
             document.addEventListener('dblclick', function(e) {
                 console.log("Double Click ...");
                 if (window.isPaused) return;
+                doubleClickFlag = true;
+                clearTimeout(clickTimer);
                 var xpath = computeXPath(e.target);
                 window.recordedEvents.push(['dblClick', Date.now(), xpath]);
-                sendEventsToServerSync();  
+                sendEventsToServerSync();
             });
 
             document.addEventListener('click', function(e) {
-                console.log("You clicked right now ...");
                 if (window.isPaused) return;
-                var xpath = computeXPath(e.target);
-                window.recordedEvents.push(['click', Date.now(), xpath]);
-                sendEventsToServerSync();  
+                if (!doubleClickFlag) {
+                    clearTimeout(clickTimer);
+                    clickTimer = setTimeout(function() {
+                        if (!doubleClickFlag) {
+                            console.log("You clicked right now ...");
+                            var xpath = computeXPath(e.target);
+                            window.recordedEvents.push(['click', Date.now(), xpath]);
+                            sendEventsToServerSync();
+                        }
+                        doubleClickFlag = false;
+                    }, 300); // Adjust the timeout duration (300ms) as needed
+                }
             });
+
 
             document.addEventListener('keypress', function(e) {
                 if (window.isPaused) return;
@@ -314,7 +329,6 @@ def set_up_listeners():
 
                     return xpathString;
                 }
-
 
                 function isUniqueByAttribute(element, attrName) {
                     let attrValue = element.getAttribute(attrName);
@@ -608,6 +622,8 @@ def stop_and_show_records():
         prev_event_was_waitforpageload = False
         combined_input = None
         combined_xpath = None
+
+        event_queue = []
         for event in recorded_events:
             event_type, timestamp, *others = event
 
@@ -617,6 +633,7 @@ def stop_and_show_records():
                 paused_time_total=0
                 input_string = f"wait : time={wait_time}, "
                 gpt_input.append(input_string)
+                event_queue.append({"event": "wait", "time": wait_time})
                 prev_event_was_wait = True
                 prev_event_was_waitforpageload == False
 
@@ -624,11 +641,13 @@ def stop_and_show_records():
                 if combined_input:
                     input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
                     gpt_input.append(input_string)
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
                     combined_xpath = None
                 xpath = others[0]
                 input_string = f"click : xpath={xpath}, "
                 gpt_input.append(input_string)
+                event_queue.append({"event": "click", "xpath": xpath})
                 prev_event_was_input = False
                 
                 prev_event_was_wait = False
@@ -638,11 +657,13 @@ def stop_and_show_records():
                  if combined_input:
                     input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
                     gpt_input.append(input_string)
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
                     combined_xpath = None
                  xpath = others[0]
                  input_string = f"dblClick : xpath={xpath}, "
                  gpt_input.append(input_string)
+                 event_queue.append({"event": "dblClick", "xpath": xpath})
                  prev_event_was_input = False
                  prev_event_was_wait = False
                  prev_event_was_waitforpageload == False
@@ -651,11 +672,13 @@ def stop_and_show_records():
                  if combined_input:
                     input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
                     gpt_input.append(input_string)
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
                     combined_xpath = None
                  xpath = others[0]
                  input_string = f"scroll : xpath={xpath}, "
                  gpt_input.append(input_string)
+                 event_queue.append({"event": "scroll", "xpath": xpath})
                  prev_event_was_input = False
                  prev_event_was_wait = False
                  prev_event_was_waitforpageload == False
@@ -669,6 +692,7 @@ def stop_and_show_records():
                     if combined_input:
                         input_string = f"input : xpath={combined_xpath} value={combined_input}, "
                         gpt_input.append(input_string)
+                        event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = char
                     combined_xpath = xpath
                 prev_event_was_input = True
@@ -679,10 +703,12 @@ def stop_and_show_records():
                 if combined_input:
                     input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
                     gpt_input.append(input_string)
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
                     combined_xpath = None
                 input_string = f"get text xpath={xpath}, "
                 gpt_input.append(input_string)
+                event_queue.append({"event": "getText", "xpath": xpath})
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
 
@@ -690,11 +716,13 @@ def stop_and_show_records():
                 if combined_input:
                     input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
                     gpt_input.append(input_string)
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
                     combined_xpath = None
                 prev_event_was_waitforpageload = True
                 input_string = "WaitForPageLoad, "
                 gpt_input.append(input_string)
+                event_queue.append({"event": "WaitForPageLoad"})
                 prev_event_was_wait = False
 
             last_time = timestamp
@@ -702,6 +730,7 @@ def stop_and_show_records():
         if combined_input:
             input_string += f'input : xpath="{combined_xpath}" value="{combined_input}'
             gpt_input.append(input_string)
+            event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
             #print(f'input : xpath="{combined_xpath}" value="{combined_input}" ')
 
         stop_thread_flag.set()
@@ -728,6 +757,7 @@ def stop_and_show_records():
             return ', '.join(updated_parts)        
 
         gpt_input = [update_wait_times(entry) for entry in gpt_input]
+
  
         #print(f"\n\n The value of gpt_input is : {gpt_input}")
     
@@ -740,6 +770,33 @@ def stop_and_show_records():
             
             counter += 1
 
+        ###################################################
+        def process_wait_in_queue(event_queue):
+            i = 0
+            while i < len(event_queue):
+                if event_queue[i]["event"] == "wait":
+                    total_time = event_queue[i]["time"]
+                    if total_time == 0:
+                        event_queue.pop(i)
+                        continue
+
+                    j = i+1
+                    while j < len(event_queue) and event_queue[j]["event"] == "wait":
+                        total_time += event_queue[j]["time"]
+                        j += 1
+                    
+                    event_queue[i]["time"] = total_time
+                    for _ in range(j - i -1):
+                        event_queue.pop(i+1)
+
+                i += 1
+            
+            return event_queue
+        
+        event_queue = process_wait_in_queue(event_queue)
+        ###################################################
+
+
         cleaned_gpt_input_1 = []
         for element in gpt_input:
             if "scroll" in element:
@@ -749,7 +806,19 @@ def stop_and_show_records():
                 cleaned_gpt_input_1.append(element)
 
         gpt_input = cleaned_gpt_input_1
-        
+
+        ###################################################
+        i = 0
+        while i < len(event_queue) - 1: 
+            current_event = event_queue[i]["event"]
+            next_event = event_queue[i + 1]["event"]
+            if current_event == "scroll" and next_event == "scroll":
+                event_queue.pop(i)
+            else:
+                i += 1
+        ###################################################
+        print(f"\n\n The event_queue for execution is : {event_queue}\n\n")
+
         completed_code= ""
         while len(gpt_input) > 0:
             gpt_input_string = ""
@@ -762,15 +831,21 @@ def stop_and_show_records():
             print(f"The gpt_input_string is : \n{gpt_input_string}\n\n")
             #print("\n\n\n The PAF code equavalent is : \n\n")
             #completed_code += get_PAF_code(gpt_input_string) + "\n\n"
+            PAF_ACTIVITY = reformat_paf_activity(event_queue)
+            completed_code = PAF_ACTIVITY["PAF_SCRIPT"]
+            activity_id = PAF_ACTIVITY["activity_id"]
         
 
         #flows_code = get_flow_code(completed_code)
+        FLOWS = reformat_paf_flow(activity_id)
+        flows_code = FLOWS["PAF_FLOW"]
+        flow_id = FLOWS["flow_id"]
 
         flow_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject/sample_xml/flow.xml"
         activity_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject/sample_xml/activity.xml"
         init_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject/src/init.properties"
 
-        completed_code = "<activities>\n\n" + completed_code + "</activities>"
+        completed_code = "<activities>\n\n" + completed_code + "\n\n</activities>"
         with open(activity_path, 'w') as f:
             f.write(completed_code)
 
@@ -780,14 +855,14 @@ def stop_and_show_records():
             f.write(flows_code)
 
 
-        flow_id=""
-        pattern = r'<flow id="([^"]+)"'
-        match = re.search(pattern, flows_code)
-        if match:
-            flow_id = match.group(1)
-            print(f"\n\nThe flow is : {flow_id} \n\n")
-        else:
-            print("ERROR : Did not find a flow id")
+        # flow_id=""
+        # pattern = r'<flow id="([^"]+)"'
+        # match = re.search(pattern, flows_code)
+        # if match:
+        #     flow_id = match.group(1)
+        #     print(f"\n\nThe flow is : {flow_id} \n\n")
+        # else:
+        #     print("ERROR : Did not find a flow id")
 
         with open(init_path, 'r') as file:
             lines = file.readlines()
