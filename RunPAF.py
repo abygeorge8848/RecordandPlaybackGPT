@@ -1,6 +1,8 @@
 import subprocess
 import os
 import time
+import glob
+import webbrowser
 
 
 
@@ -24,3 +26,27 @@ def run_file():
     # Run the command
     process = subprocess.Popen(java_command, shell=True)
     process.wait()
+
+    # Return a message indicating completion
+    return 1
+
+
+
+
+def report_open():
+    # List all files in the directory
+    files = glob.glob(os.path.join("C:/Users/u1138322/PAF/ProjectContainer/SampleProject/report/summary_report", '*.html'))
+    if not files:
+        print("No HTML files found in the directory.")
+        return
+
+    # Find the most recently created HTML file
+    most_recent_file = max(files, key=os.path.getctime)
+
+    # Open the most recently created HTML file in Microsoft Edge
+    edge_path = "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"  # Path to Microsoft Edge
+    webbrowser.register('edge', None, webbrowser.BackgroundBrowser(edge_path))
+    webbrowser.get('edge').open_new_tab(most_recent_file)
+
+    print(f"Opened the most recently created HTML file: {most_recent_file}")
+

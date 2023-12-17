@@ -1,5 +1,5 @@
 ﻿Functionalit description : functionality name 
-"To get the text of any element in the UI and store it in a variable, use the functionality named : getText"
+"To get the text of any element and store it in a variable, use the functionality named : getText"
 "To repeat any action a particular number of times or loop over some actions, use the functionality named : loop"
 "To check whether any element, text, etc exists or is present or to validate an elements presence, use the functionality named : validate-exists"
 "To check whether any element, text, etc does not exist or is not present or to validate an element is not present or verify it doesn’t exist, use the functionality named : validate-not-exists"

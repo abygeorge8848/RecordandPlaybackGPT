@@ -19,7 +19,7 @@ import urllib3
 from tkinter import ttk
 import threading
 import re
-from RunPAF import run_file
+from RunPAF import run_file, report_open
 from reformat_paf import reformat_paf_activity, reformat_paf_flow
 from gpt import align_input_steps
 
@@ -76,7 +76,7 @@ actions = ActionChains(driver)
 # GUI setup
 root = tk.Tk()
 root.title("Action Recorder")
-root.geometry("500x250")  # Adjust the initial window size for a better look
+root.geometry("500x300")  # Adjust the initial window size for a better look
 
 # Configure style
 font_main = ("Arial", 12)
@@ -103,18 +103,18 @@ def process_instruction():
 
     instruction = instruction_entry.get()
     tag_found = align_input_steps(instruction)
-    
+
+
     # If there's a match, it indicates the user wants to retrieve text
     if "getText" in tag_found or  "validate-exists" in tag_found or "validate-not-exists" in tag_found: 
-        driver.execute_script("""
-            document.addEventListener('click', function getTextEvent(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var xpath = computeXPath(e.target);
-                console.log(xpath);
-                window.clickedElementXPath = xpath;
-                document.removeEventListener('click', getTextEvent);
-            });
+        xpath = driver.execute_script("""
+           document.addEventListener('click', function getTextEvent(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var xpath = computeXPath(e.target);
+            console.log(xpath);
+            window.clickedElementXPath = xpath;
+        });
 
             function computeXPath(element) {
                 if (!element) return null;
@@ -245,36 +245,51 @@ def process_instruction():
                 }
         """)
 
-        tag_name = ""
-        if "getText" in tag_found:
-            tag_name = "getText"
-        elif "validation-exists" in tag_found:
-            tag_name = "validation-exists"
-        elif "validation-not-exists" in tag_found:
-            tag_name = "validation-not-exists"
+    time.sleep(3)
+    all_ok = True
+    for tag in tag_found:
+        if tag:
+            if tag in ["getText", "validation-exists", "validation-not-exists"]:
+                xpath = driver.execute_script("return window.clickedElementXPath || '';")
+                print(f"The xpath is : {xpath}")
+                if not xpath:
+                    all_ok = False
+                    messagebox.showwarning("Action Recorder", "No element selected. Please try again.")
+        else:
+            print("No tag has been found while processing the instruction")
 
-        if "getText" in tag_found:
-            root.after(2000, lambda: xpath_instructions(param1, param2))
-        elif "validation" in tag_found:
-            root.after(2000, validation_instruction)
 
-    elif "validation" in tag_found:
-        pass
-        # Give user a brief moment to click the element they want to get text from
+    if all_ok:
+        for tag in tag_found:
+            if tag:
+                if tag in ["getText", "validation-exists", "validation-not-exists"]:
+                    print("Calling xpath_instructional function")
+                    root.after(2000, lambda: xpath_instructions(xpath, tag, instruction))
+                else:
+                    print("Calling parameterless_instructional function")
+                    root.after(2000, lambda: parameterless_instruction(tag, instruction))
+
+            else:
+                print("No tag has been found while processing the instruction")
+
         
 
+def escape_js_string(s):
+    return s.replace("'", "\\'")
 
 
-def xpath_instructions():
-    xpath = driver.execute_script("return window.clickedElementXPath || '';")
+def xpath_instructions(xpath, tag, instruction):
     if xpath:
+        escaped_tag = escape_js_string(tag)
+        escaped_xpath = escape_js_string(xpath)
+        escaped_instruction = escape_js_string(instruction)
         js_script = f"""
             function sendEventsToServerSync() {{
+                console.log("Sending the respective event to the server");
                 if (window.isSending || window.recordedEvents.length === 0) {{
                     return; // Do not send if a send operation is in progress or if there are no events to send
                 }}
                 window.isSending = true;
-
                 var xhr = new XMLHttpRequest();
                 xhr.open("POST", 'http://localhost:9000/save', true);
                 xhr.onreadystatechange = function() {{
@@ -286,11 +301,10 @@ def xpath_instructions():
                         window.recordedEvents = []; // Clear the recorded events after sending
                     }}
                 }};
-
                 xhr.setRequestHeader('Content-Type', 'application/json');
                 xhr.send(JSON.stringify(window.recordedEvents));
             }}
-            window.recordedEvents.push(['getText', Date.now(), '{xpath}']);
+            window.recordedEvents.push(['{escaped_tag}', Date.now(), '{escaped_xpath}', '{escaped_instruction}']);
             sendEventsToServerSync();
             window.clickedElementXPath = null;
         """
@@ -300,38 +314,34 @@ def xpath_instructions():
         messagebox.showwarning("Action Recorder", "No element selected. Please try again.")
 
 
-def validation_instruction():
-    xpath = driver.execute_script("return window.clickedElementXPath || '';")
-    if xpath:
-        js_script = f"""
-            function sendEventsToServerSync() {{
-                if (window.isSending || window.recordedEvents.length === 0) {{
-                    return; // Do not send if a send operation is in progress or if there are no events to send
-                }}
-                window.isSending = true;
-
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", 'http://localhost:9000/save', true);
-                xhr.onreadystatechange = function() {{
-                    if (xhr.readyState == 4) {{
-                        if (xhr.status == 200) {{
-                            console.log('Event data sent successfully');
-                        }}
-                        window.isSending = false;
-                        window.recordedEvents = []; // Clear the recorded events after sending
-                    }}
-                }};
-
-                xhr.setRequestHeader('Content-Type', 'application/json');
-                xhr.send(JSON.stringify(window.recordedEvents));
+def parameterless_instruction(tag, instruction):
+    js_script = f"""
+        function sendEventsToServerSync() {{
+            console.log("Sending the respective event to the server");
+            if (window.isSending || window.recordedEvents.length === 0) {{
+                return; // Do not send if a send operation is in progress or if there are no events to send
             }}
-            window.recordedEvents.push(['validate that an element exists', Date.now(), '{xpath}']);
-            sendEventsToServerSync();
-            window.clickedElementXPath = null;
-        """
-        driver.execute_script(js_script)
-    else:
-        messagebox.showwarning("Action Recorder", "No element selected. Please try again.")
+            window.isSending = true;
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", 'http://localhost:9000/save', true);
+            xhr.onreadystatechange = function() {{
+                if (xhr.readyState == 4) {{
+                    if (xhr.status == 200) {{
+                        console.log('Event data sent successfully');
+                    }}
+                    window.isSending = false;
+                    window.recordedEvents = []; // Clear the recorded events after sending
+                }}
+            }};
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify(window.recordedEvents));
+        }}
+        window.recordedEvents.push([`'{tag}'`, Date.now(), `'{instruction}'`]);
+        sendEventsToServerSync();
+        window.clickedElementXPath = null;
+    """
+    driver.execute_script(js_script)
+
 
 
 
@@ -759,7 +769,7 @@ def stop_and_show_records():
                 prev_event_was_wait = True
                 prev_event_was_waitforpageload == False
 
-            if event_type == "click":
+            if event_type == "click" or event_type == "dblClick" or event_type == "scroll" or event_type == "getText":
                 if combined_input:
                     input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
                     gpt_input.append(input_string)
@@ -767,43 +777,12 @@ def stop_and_show_records():
                     combined_input = None
                     combined_xpath = None
                 xpath = others[0]
-                input_string = f"click : xpath={xpath}, "
+                input_string = f"{event_type} : xpath={xpath}, "
                 gpt_input.append(input_string)
-                event_queue.append({"event": "click", "xpath": xpath})
-                prev_event_was_input = False
-                
+                event_queue.append({"event": event_type, "xpath": xpath})
+                prev_event_was_input = False 
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
-
-            elif event_type == "dblClick":
-                 if combined_input:
-                    input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
-                    gpt_input.append(input_string)
-                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
-                    combined_input = None
-                    combined_xpath = None
-                 xpath = others[0]
-                 input_string = f"dblClick : xpath={xpath}, "
-                 gpt_input.append(input_string)
-                 event_queue.append({"event": "dblClick", "xpath": xpath})
-                 prev_event_was_input = False
-                 prev_event_was_wait = False
-                 prev_event_was_waitforpageload == False
-
-            elif event_type == "scroll":
-                 if combined_input:
-                    input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
-                    gpt_input.append(input_string)
-                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
-                    combined_input = None
-                    combined_xpath = None
-                 xpath = others[0]
-                 input_string = f"scroll : xpath={xpath}, "
-                 gpt_input.append(input_string)
-                 event_queue.append({"event": "scroll", "xpath": xpath})
-                 prev_event_was_input = False
-                 prev_event_was_wait = False
-                 prev_event_was_waitforpageload == False
 
             elif event_type == "input":
                 xpath = others[0]
@@ -820,19 +799,32 @@ def stop_and_show_records():
                 prev_event_was_input = True
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
-
-            elif event_type == "getText":
+            
+            elif event_type == "validation-exists" or event_type == "validation-not-exists" :
+                xpath = others[0]
+                instruction = others[1]
                 if combined_input:
                     input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
                     gpt_input.append(input_string)
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
                     combined_xpath = None
-                input_string = f"get text xpath={xpath}, "
-                gpt_input.append(input_string)
-                event_queue.append({"event": "getText", "xpath": xpath})
+                event_queue.append({"event": event_type, "xpath": xpath, "instruction": instruction})
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
+
+            elif event_type == "loop" or event_type == "if-condition" or event_type == "validation-equals" or event_type == "validation-starts-with" or event_type == "validation-ends-with" or event_type == "variable-expression" or event_type == "validation-num-equals" or event_type == "validation-num-not-equals" or event_type == "validation-num-le" or event_type == "validation-num-ge" or event_type == "validation-contains":
+                instruction = others[1]
+                if combined_input:
+                    input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
+                    gpt_input.append(input_string)
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
+                    combined_input = None
+                    combined_xpath = None
+                event_queue.append({"event": event_type, "instruction": instruction})
+                prev_event_was_wait = False
+                prev_event_was_waitforpageload == False
+
 
             elif event_type == "WaitForPageLoad" and prev_event_was_waitforpageload == False:
                 if combined_input:
@@ -1042,6 +1034,7 @@ def start_progress_bar():
     progress_bar.grid()  # Show the progress bar
     print("Showed the progress bar")
     run_script_btn.grid_remove()  # Hide 'Run your script' button
+    #open_report_btn.grid_remove()
     increment_progress_bar()  # Start incrementing the progress bar
 
 
@@ -1061,7 +1054,13 @@ def complete_progress_bar():
 
 def run_script():
     print("\n I'll try to run your PAF script now! \n\n")
-    run_file()
+    file_run = run_file()
+    print(f"The file run result is : {file_run}")
+    if file_run:
+        open_report_btn.grid()
+
+def open_report():
+    report_open()
 
 
 # Buttons
@@ -1090,6 +1089,10 @@ progress_bar.grid_remove()
 run_script_btn = tk.Button(frame, text="Run your script", command=run_script, font=font_button)
 run_script_btn.grid(row=3, column=0, columnspan=3, pady=10)
 run_script_btn.grid_remove()
+
+open_report_btn = tk.Button(frame, text="Open your report", command=open_report, font=font_button)
+open_report_btn.grid(row=4, column=0, columnspan=3, pady=10)
+open_report_btn.grid_remove()
 
 
 

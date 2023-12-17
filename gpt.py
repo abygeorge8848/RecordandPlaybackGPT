@@ -17,6 +17,7 @@ def align_input_steps(instruction):
     # print(f"The response is : {response}")
     functional_sequence = extract_sequence(response)
     print(f"The functional sequence is : {functional_sequence}\n")
+    return functional_sequence
 
 
 
@@ -24,8 +25,9 @@ def align_input_steps(instruction):
 def gpt_call(openai, gpt_model, deployment_id, data, results):
     # Define the prompt for GPT-4
     prompt = (f"""
-    Some functionality along with their description is given below. Your task is to return the functionality or sequence of functionalities from the 4 given below which fullfils the user prompt. Return the response only as JSON.
-              Functionality description : Functionality name
+    You are a helpful assistant incapable of doing anything but converting the user query to a set of Functions. Using only the below given functions, return the required function name/names in sequence to execute the user query. 
+              
+              Function description : Function name
 
               1. {results[0]['content']}
               2. {results[1]['content']}
@@ -33,29 +35,7 @@ def gpt_call(openai, gpt_model, deployment_id, data, results):
               4. {results[3]['content']}
               """)
     
-    function_prompt = "Your task is to use the user prompt which has instructions and unformatted data, and return the functionality or sequence of functionalities from the 5 given below, which can fullfill the users instructions." 
     
-    functionality_sequencer = {
-                "type": "function",
-                "function": {
-                    "name": "get_functionality_sequence",
-                    "description": function_prompt,
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "commands": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string",
-                                    "description": "The functionality name in sequence"
-                                },
-                            "description": "List of functionality names in sequence"
-                            },
-                        },
-                        "required": ["commands"]
-                    },
-                }   
-            }
 
     # Make the API call to GPT-4
     response = openai.ChatCompletion.create(
@@ -70,8 +50,6 @@ def gpt_call(openai, gpt_model, deployment_id, data, results):
             {"role": "system", "content": prompt},
             {"role": "user", "content": data}
         ],
-        #tools=[functionality_sequencer],
-        #tool_choice="auto"
     )
 
     return response
@@ -92,14 +70,56 @@ def extract_sequence(text):
     words = cleaned_text.split()
     print(words)
     for word in words:
-        if word in keywords:
+        if word in keywords and (word not in found_keywords):
             found_keywords.append(word)
 
     return found_keywords
 
 
 
+def generate_pass_message(instruction):
+    prompt = (f"""
+    The user prompt will be an instruction. Return ONLY a message which indicates that the test has passed while executing the instruction. 
+              """)
+
+    deployment_id, gpt_model, embedding_model, openai = get_token()
+    raw_response = gpt_call_message_generate(openai, gpt_model, deployment_id, instruction, prompt)
+    response = raw_response.choices[0]["message"]["content"]
+    print(f"The response is : {response}\n")
+    return response
+
+
+def generate_fail_message(instruction):
+    prompt = (f"""
+    The user prompt will be an instruction. Return ONLY a message which indicates that the test has failed while executing the instruction. 
+              """)
+
+    deployment_id, gpt_model, embedding_model, openai = get_token()
+    raw_response = gpt_call_message_generate(openai, gpt_model, deployment_id, instruction, prompt)
+    response = raw_response.choices[0]["message"]["content"]
+    print(f"The response is : {response}\n")
+    return response
+
+
+def gpt_call_message_generate(openai, gpt_model, deployment_id, data, prompt):
+    
+    # Make the API call to GPT-4
+    response = openai.ChatCompletion.create(
+        deployment_id=deployment_id,
+        model=gpt_model,
+        temperature=0,
+        max_tokens=1000,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0,
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": data}
+        ],
+    )
+
+    return response
 
 
 if __name__ == "__main__":
-    align_input_steps({"instruction": "I want to check whether my text equals this text"})
+    generate_pass_message("I want to check whether my text equals this text")
