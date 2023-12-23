@@ -13,29 +13,29 @@ def reformat_paf_activity(event_queue):
         elif event["event"] == "click":
             xpath = event["xpath"]
             PAF_SCRIPT += f'\t<WaitTillElement xpath="{xpath}" waitcondition="click"></WaitTillElement>\n'
-            PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
+            #PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
             PAF_SCRIPT += f'\t<script xpath="{xpath}" clickElement="true"></script>\n'
         elif event["event"] == "input":
             xpath = event["xpath"]
             value = event["value"]
             PAF_SCRIPT += f'\t<WaitTillElement xpath="{xpath}" waitcondition="click"></WaitTillElement>\n'
-            PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
+            #PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
             PAF_SCRIPT += f'\t<input xpath="{xpath}" value="{value}"></input>\n'
         elif event["event"] == "dblClick":
             xpath = event["xpath"]
             PAF_SCRIPT += f'\t<WaitTillElement xpath="{xpath}" waitcondition="click"></WaitTillElement>\n'
-            PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
+            #PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
             PAF_SCRIPT += f'\t<dblClick xpath="{xpath}"></dblClick>\n'
         elif event["event"] == "scroll":
             xpath = event["xpath"]
             PAF_SCRIPT += f'\t<WaitTillElement xpath="{xpath}" waitcondition="visible"></WaitTillElement>\n'
-            PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
+            #PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
             PAF_SCRIPT += f'\t<scroll xpath="{xpath}"></scroll>\n'
         elif event["event"] == "getText":
             getText_variable = name_engine.get_variable_name()
             xpath = event["xpath"]
             PAF_SCRIPT += f'\t<WaitTillElement xpath="{xpath}" waitcondition="visible"></WaitTillElement>\n'
-            PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
+            #PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
             PAF_SCRIPT += f'\t<getText xpath="{xpath}" variable="{getText_variable}"></getText>\n'
         elif event["event"] == "validation-exists" or event["event"] == "validation-not-exists":
             validation_name = name_engine.get_validation_name()
@@ -43,12 +43,12 @@ def reformat_paf_activity(event_queue):
             instruction = event["instruction"]
             passMsg = generate_pass_message(instruction)
             failMsg = generate_fail_message(instruction)
-            PAF_SCRIPT += '\t<wait time="5000"></wait>\n'
+            #PAF_SCRIPT += '\t<wait time="5000"></wait>\n'
             PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
             VALIDATION_SCRIPT += f'\n<valGroup groupId="{validation_name}">\n'
-            if event["event"] == "validation-exists":
+            if event["event"] == "validate-exists":
                 VALIDATION_SCRIPT += f'\t<validate xpath="{xpath}" exists="true" snapshot="true" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'
-            elif event["event"] == "validation-not-exists":
+            elif event["event"] == "validate-not-exists":
                 VALIDATION_SCRIPT += f'\t<validate xpath="{xpath}" exists="false" snapshot="true" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'
             VALIDATION_SCRIPT += f'</valGroup>\n'
     

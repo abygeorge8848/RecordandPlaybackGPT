@@ -14,7 +14,17 @@ if (!window.hasInjected) {
         function escapeXPathString(str) {
             if (!str.includes("'")) return `'${str}'`;
             if (!str.includes('"')) return `"${str}"`;
-            return "concat('" + str.replace(/'/g, "',\"'\", '") + "')";
+            let parts = str.split("'");
+            let xpathString = "concat(";
+            for (let i = 0; i < parts.length; i++) {
+                xpathString += `'${parts[i]}'`;
+                if (i < parts.length - 1) {
+                    xpathString += `, "'", `;
+                }
+            }
+            xpathString += ")";
+
+            return xpathString;
         }
 
         function isUniqueByAttribute(element, attrName) {
@@ -46,19 +56,19 @@ if (!window.hasInjected) {
             }
             return path;
         }
-    
+
         // Function to generate a unique XPath using parent attributes
         function generateRelativeXPath(element) {
             var paths = [];
             var currentElement = element;
-    
+
             while (currentElement && currentElement.nodeType === 1) {
                 let uniqueAttributeXPath = getUniqueAttributeXPath(currentElement);
                 if (uniqueAttributeXPath) {
                     paths.unshift(uniqueAttributeXPath);
                     break; // Break the loop if a unique attribute is found
                 }
-    
+
                 let tagName = currentElement.tagName.toLowerCase();
                 let index = 1;
                 for (let sibling = currentElement.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
@@ -68,11 +78,11 @@ if (!window.hasInjected) {
                 }
                 let pathIndex = (index > 1 ? `[${index}]` : '');
                 paths.unshift(`${tagName}${pathIndex}`);
-    
+
                 currentElement = currentElement.parentNode;
             }
-    
-            return paths.length ? `//${paths.join('/')}` : null;
+
+            return paths.length ? `//${paths.join('//')}` : null;
         }
 
         function getUniqueAttributeXPath(element) {
@@ -103,7 +113,7 @@ if (!window.hasInjected) {
             return null;
         }
 
-        const attributes = ['id', 'name', 'type', 'value', 'title', 'alt', 'col-id', 'colid', 'ref', 'role', 'ng-bind'];
+        const attributes = ['id', 'name', 'type', 'value', 'title', 'alt', 'col-id', 'colid', 'ref', 'role', 'ng-bind', 'ng-click', 'placeholder'];
         for (let attr of attributes) {
             if (isUniqueByAttribute(element, attr)) {
                 return `//${element.tagName.toLowerCase()}[@${attr}='${element.getAttribute(attr)}']`;
@@ -119,8 +129,18 @@ if (!window.hasInjected) {
             }
         }
 
-        if (element.tagName.toLowerCase() !== 'i' && isUniqueByText(element)) {
-            return `//${element.tagName.toLowerCase()}[contains(text(), ${escapeXPathString(element.textContent.trim())})]`;
+        if (element.tagName.toLowerCase() !== 'i' && element.childNodes.length > 0) {
+            for (let child of element.childNodes) {
+                if (child.nodeType === Node.TEXT_NODE) {
+                    let text = child.textContent.trim();
+                    if (text) {
+                        let xpath = `//${element.tagName.toLowerCase()}[text()[contains(., ${escapeXPathString(text)})]]`;
+                        if (document.evaluate("count(" + xpath + ")", document, null, XPathResult.ANY_TYPE, null).numberValue === 1) {
+                            return xpath;
+                        }
+                    }
+                }
+            }
         }
 
         return generateRelativeXPath(element);
