@@ -61,14 +61,20 @@ if (!window.hasInjected) {
         function generateRelativeXPath(element) {
             var paths = [];
             var currentElement = element;
-
+    
             while (currentElement && currentElement.nodeType === 1) {
-                let uniqueAttributeXPath = getUniqueAttributeXPath(currentElement);
-                if (uniqueAttributeXPath) {
-                    paths.unshift(uniqueAttributeXPath);
-                    break; // Break the loop if a unique attribute is found
+                let uniqueXPath = getUniqueXPathForElement(currentElement);
+                if (uniqueXPath) {
+                    paths.unshift(uniqueXPath);
+                    break; // Break the loop if a unique identifier is found
                 }
-
+    
+                let parentTextXPath = getParentTextXPath(currentElement);
+                if (parentTextXPath) {
+                    paths.unshift(parentTextXPath);
+                    break; // Use parent text content for XPath if it provides uniqueness
+                }
+    
                 let tagName = currentElement.tagName.toLowerCase();
                 let index = 1;
                 for (let sibling = currentElement.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
@@ -78,13 +84,70 @@ if (!window.hasInjected) {
                 }
                 let pathIndex = (index > 1 ? `[${index}]` : '');
                 paths.unshift(`${tagName}${pathIndex}`);
-
+    
                 currentElement = currentElement.parentNode;
             }
+    
+            return paths.length ? `//${paths.join('/')}` : null;
+        }
+        
 
-            return paths.length ? `//${paths.join('//')}` : null;
+        function getParentTextXPath(element) {
+            let parent = element.parentNode;
+            if (!parent || parent.nodeType !== 1) {
+                return null;
+            }
+    
+            let parentText = parent.textContent.trim();
+            let childText = Array.from(parent.childNodes).filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent.trim()).join('').trim();
+    
+            // Check if parent's own text (excluding children's text) is unique and significant
+            if (parentText !== childText && parentText.includes(childText) && isUniqueByText(parent, parentText.replace(childText, '').trim())) {
+                return `${parent.tagName.toLowerCase()}[contains(text(), ${escapeXPathString(parentText.replace(childText, '').trim())})]`;
+            }
+    
+            return null;
         }
 
+        function isUniqueByCombinedAttributes(element, attributes) {
+            let xpath = `//${element.tagName.toLowerCase()}`;
+            let attributeConditions = [];
+        
+            for (let attr of attributes) {
+                let attrValue = element.getAttribute(attr);
+                if (attrValue) {
+                    attributeConditions.push(`@${attr}=${escapeXPathString(attrValue)}`);
+                }
+            }
+        
+            if (attributeConditions.length === 0) return false;
+        
+            xpath += '[' + attributeConditions.join(' and ') + ']';
+            return document.evaluate("count(" + xpath + ")", document, null, XPathResult.ANY_TYPE, null).numberValue === 1;
+        }
+        
+    
+        function getUniqueXPathForElement(element) {
+            // First, try to find a unique XPath using a single attribute
+            let uniqueAttributeXPath = getUniqueAttributeXPath(element);
+            if (uniqueAttributeXPath) {
+                return uniqueAttributeXPath;
+            }
+        
+            // If single attribute is not unique, try a combination of attributes
+            const combinedAttributes = ['id', 'name', 'type', 'value', 'title', 'alt', 'col-id', 'colid', 'ref', 'role', 'ng-bind']; // Customize this list as needed
+            if (isUniqueByCombinedAttributes(element, combinedAttributes)) {
+                let conditions = combinedAttributes
+                    .filter(attr => element.getAttribute(attr))
+                    .map(attr => `@${attr}=${escapeXPathString(element.getAttribute(attr))}`)
+                    .join(' and ');
+                return `${element.tagName.toLowerCase()}[${conditions}]`;
+            }
+        
+            // If no unique identification is found, return null or proceed to other identification methods
+            return null;
+        }
+        
         function getUniqueAttributeXPath(element) {
             const attributes = ['id', 'name', 'type', 'value', 'title', 'alt', 'col-id', 'colid', 'ref', 'role', 'ng-bind'];
             for (let attr of attributes) {
