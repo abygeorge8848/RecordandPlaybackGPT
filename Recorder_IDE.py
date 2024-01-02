@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+from Recorder import start_recording
 
 def start_recording():
     start_button.pack_forget()
@@ -9,6 +10,8 @@ def start_recording():
     pause_resume_button.pack(side=tk.LEFT, padx=5)
     update_steps("Start Recording")
     disable_dropdown_options()
+    url = url_entry.get()
+    start_recording(url)
 
 def stop_recording():
     stop_button.pack_forget()
@@ -44,6 +47,12 @@ def handle_dropdown_selection(event):
         if selected == "getText":
             get_text_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             validation_exists_frame.pack_forget()
+            validation_not_exists_frame.pack_forget()
+            validation_equals_frame.pack_forget()
+            validation_not_equals_frame.pack_forget()
+            validation_num_equals_frame.pack_forget()
+            validation_num_not_equals_frame.pack_forget()
+            variable_value_frame.pack_forget()
         elif selected == "validation-exists":
             validation_exists_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -52,6 +61,7 @@ def handle_dropdown_selection(event):
             validation_not_equals_frame.pack_forget()
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
+            variable_value_frame.pack_forget()
         elif selected == "validation-not-exists":
             validation_not_exists_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -60,6 +70,7 @@ def handle_dropdown_selection(event):
             validation_not_equals_frame.pack_forget()
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
+            variable_value_frame.pack_forget()
         elif selected == "validation-equals":
             validation_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -68,6 +79,7 @@ def handle_dropdown_selection(event):
             validation_not_equals_frame.pack_forget()
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
+            variable_value_frame.pack_forget()
         elif selected == "validation-not-equals":
             validation_not_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -76,6 +88,7 @@ def handle_dropdown_selection(event):
             validation_equals_frame.pack_forget()
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
+            variable_value_frame.pack_forget()
         elif selected == "validation-num-equals":
             validation_num_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -84,8 +97,19 @@ def handle_dropdown_selection(event):
             validation_equals_frame.pack_forget()
             validation_not_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
+            variable_value_frame.pack_forget()
         elif selected == "validation-num-not-equals":
             validation_num_not_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
+            get_text_frame.pack_forget()
+            validation_exists_frame.pack_forget()
+            validation_not_exists_frame.pack_forget()
+            validation_equals_frame.pack_forget()
+            validation_not_equals_frame.pack_forget()
+            validation_num_equals_frame.pack_forget()
+            variable_value_frame.pack_forget()
+        elif selected == "variable-value":
+            variable_value_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
+            validation_num_not_equals_frame.pack_forget()
             get_text_frame.pack_forget()
             validation_exists_frame.pack_forget()
             validation_not_exists_frame.pack_forget()
@@ -148,16 +172,31 @@ def validate_num_not_equals():
     validation_num_not_equals_frame.pack_forget()
     update_steps(f"validate-num-not-equals: {validation_name}")
 
+def variable_value():
+    variable_name = variable_name_entry.get()
+    # Implement your validation logic here
+    variable_value_frame.pack_forget()
+    update_steps(f"variable-value: {variable_name}")
+
 def update_steps(step):
     executed_steps.insert(tk.END, step)
     executed_steps.see(tk.END)
 
+
+
+#######################################################
+
+
 root = tk.Tk()
-root.title("Recording GUI")
+root.title("Recorder")
 
 # Navigation Bar
 nav_bar = tk.Frame(root)
 nav_bar.pack(side=tk.TOP, fill=tk.X)
+
+url_entry = tk.Entry(nav_bar)
+url_entry.insert(0, 'http://')  # You can set a default or placeholder text if needed
+url_entry.pack(side=tk.LEFT, padx=5)
 
 start_button = tk.Button(nav_bar, text="Start", command=start_recording)
 stop_button = tk.Button(nav_bar, text="Stop", command=stop_recording)
@@ -171,7 +210,7 @@ sidebar.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
 
 dropdown_var = tk.StringVar()
 dropdown = ttk.Combobox(sidebar, textvariable=dropdown_var, state="disabled")
-dropdown['values'] = ["getText", "validation-exists", "validation-not-exists", "validation-equals", "validation-not-equals", "validation-num-equals", "validation-num-not-equals"]
+dropdown['values'] = ["getText", "variable-value", "validation-exists", "validation-not-exists", "validation-equals", "validation-not-equals", "validation-num-equals", "validation-num-not-equals"]
 dropdown.bind("<<ComboboxSelected>>", handle_dropdown_selection)
 
 dropdown_frame = tk.Frame(sidebar)
@@ -181,50 +220,85 @@ get_text_frame = tk.Frame(sidebar)
 variable_name_entry = tk.Entry(get_text_frame)
 variable_name_entry.insert(0, 'variable name')
 get_text_button = tk.Button(get_text_frame, text="Get Text", command=get_text)
-variable_name_entry.pack(side=tk.LEFT, padx=5)
-get_text_button.pack(side=tk.LEFT)
+variable_name_entry.pack(side=tk.TOP, padx=5, pady=5)
+get_text_button.pack(side=tk.TOP)
 
 validation_exists_frame = tk.Frame(sidebar)
 validation_name_entry = tk.Entry(validation_exists_frame)
 validation_name_entry.insert(0, 'validation name')
 validate_button = tk.Button(validation_exists_frame, text="Validate", command=validate_exists)
-validation_name_entry.pack(side=tk.LEFT, padx=5)
-validate_button.pack(side=tk.LEFT)
+validation_name_entry.pack(side=tk.TOP, padx=5, pady=5)
+validate_button.pack(side=tk.TOP)
 
 validation_not_exists_frame = tk.Frame(sidebar)
 validation_name_entry = tk.Entry(validation_not_exists_frame)
 validation_name_entry.insert(0, 'validation name')
 validate_button = tk.Button(validation_not_exists_frame, text="Validate", command=validate_not_exists)
-validation_name_entry.pack(side=tk.LEFT, padx=5)
-validate_button.pack(side=tk.LEFT)
+validation_name_entry.pack(side=tk.TOP, padx=5, pady=5)
+validate_button.pack(side=tk.TOP)
 
 validation_equals_frame = tk.Frame(sidebar)
+variable1_value_entry = tk.Entry(validation_equals_frame)
+variable1_value_entry.insert(0, 'value 1 value')
+variable1_value_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+variable2_value_entry = tk.Entry(validation_equals_frame)
+variable2_value_entry.insert(0, 'value 2 value')
+variable2_value_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 validation_name_entry = tk.Entry(validation_equals_frame)
 validation_name_entry.insert(0, 'validation name')
+validation_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 validate_button = tk.Button(validation_equals_frame, text="Validate", command=validate_equals)
-validation_name_entry.pack(side=tk.LEFT, padx=5)
-validate_button.pack(side=tk.LEFT)
+validate_button.pack(side=tk.TOP, pady=10)
 
 validation_not_equals_frame = tk.Frame(sidebar)
+variable1_value_entry = tk.Entry(validation_not_equals_frame)
+variable1_value_entry.insert(0, 'value 1 value')
+variable1_value_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+variable2_value_entry = tk.Entry(validation_not_equals_frame)
+variable2_value_entry.insert(0, 'value 2 value')
+variable2_value_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 validation_name_entry = tk.Entry(validation_not_equals_frame)
 validation_name_entry.insert(0, 'validation name')
+validation_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 validate_button = tk.Button(validation_not_equals_frame, text="Validate", command=validate_not_equals)
-validation_name_entry.pack(side=tk.LEFT, padx=5)
-validate_button.pack(side=tk.LEFT)
+validate_button.pack(side=tk.TOP, pady=10)
 
 validation_num_equals_frame = tk.Frame(sidebar)
+variable1_value_entry = tk.Entry(validation_num_equals_frame)
+variable1_value_entry.insert(0, 'value 1 value')
+variable1_value_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+variable2_value_entry = tk.Entry(validation_num_equals_frame)
+variable2_value_entry.insert(0, 'value 2 value')
+variable2_value_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 validation_name_entry = tk.Entry(validation_num_equals_frame)
 validation_name_entry.insert(0, 'validation name')
+validation_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 validate_button = tk.Button(validation_num_equals_frame, text="Validate", command=validate_num_equals)
-validation_name_entry.pack(side=tk.LEFT, padx=5)
-validate_button.pack(side=tk.LEFT)
+validate_button.pack(side=tk.TOP, pady=10)
 
 validation_num_not_equals_frame = tk.Frame(sidebar)
+variable1_value_entry = tk.Entry(validation_num_not_equals_frame)
+variable1_value_entry.insert(0, 'value 1 value')
+variable1_value_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+variable2_value_entry = tk.Entry(validation_num_not_equals_frame)
+variable2_value_entry.insert(0, 'value 2 value')
+variable2_value_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 validation_name_entry = tk.Entry(validation_num_not_equals_frame)
 validation_name_entry.insert(0, 'validation name')
+validation_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 validate_button = tk.Button(validation_num_not_equals_frame, text="Validate", command=validate_num_not_equals)
-validation_name_entry.pack(side=tk.LEFT, padx=5)
-validate_button.pack(side=tk.LEFT)
+validate_button.pack(side=tk.TOP, pady=10)
+
+variable_value_frame = tk.Frame(sidebar)
+variable_name_entry = tk.Entry(variable_value_frame)
+variable_name_entry.insert(0, 'variable name')
+variable_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+variable_value_entry = tk.Entry(variable_value_frame)
+variable_value_entry.insert(0, 'variable value')
+variable_value_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+validate_button = tk.Button(variable_value_frame, text="Validate", command=variable_value)
+validate_button.pack(side=tk.TOP, pady=8)
+
 
 # Left Main Area
 main_area = tk.Frame(root)
@@ -237,5 +311,8 @@ executed_steps.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 scrollbar = tk.Scrollbar(main_area, orient="vertical", command=executed_steps.yview)
 scrollbar.pack(side=tk.LEFT, fill=tk.Y)
 executed_steps.config(yscrollcommand=scrollbar.set)
+executed_steps.config(xscrollcommand=scrollbar.set)
+
 
 root.mainloop()
+

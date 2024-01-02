@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from waitress import serve
-from RecordGPT import root
+from Recorder_IDE import root 
 import threading
 
 app = Flask(__name__)
