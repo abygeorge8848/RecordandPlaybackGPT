@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-from Recorder import start_recording
+from Recorder import start_recording, stop_and_show_records
 
-def start_recording():
+def start_record():
     start_button.pack_forget()
     stop_button.pack(side=tk.LEFT, padx=5)
     pause_resume_button.config(text="Pause", command=pause_recording)
@@ -20,6 +20,7 @@ def stop_recording():
     dropdown_frame.pack_forget()
     update_steps("Stop Recording")
     disable_dropdown_options()
+    stop_and_show_records()
 
 def pause_recording():
     pause_resume_button.config(text="Resume", command=resume_recording)
@@ -198,7 +199,7 @@ url_entry = tk.Entry(nav_bar)
 url_entry.insert(0, 'http://')  # You can set a default or placeholder text if needed
 url_entry.pack(side=tk.LEFT, padx=5)
 
-start_button = tk.Button(nav_bar, text="Start", command=start_recording)
+start_button = tk.Button(nav_bar, text="Start", command=start_record)
 stop_button = tk.Button(nav_bar, text="Stop", command=stop_recording)
 pause_resume_button = tk.Button(nav_bar, text="Pause", command=pause_recording)
 

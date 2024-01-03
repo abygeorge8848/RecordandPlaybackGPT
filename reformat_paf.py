@@ -1,5 +1,5 @@
 from name_generator import NameGenerator
-from gpt import generate_pass_message, generate_fail_message
+#from gpt import generate_pass_message, generate_fail_message
 
 
 def reformat_paf_activity(event_queue):
@@ -41,8 +41,10 @@ def reformat_paf_activity(event_queue):
             validation_name = name_engine.get_validation_name()
             xpath = event["xpath"]
             instruction = event["instruction"]
-            passMsg = generate_pass_message(instruction)
-            failMsg = generate_fail_message(instruction)
+            #passMsg = generate_pass_message(instruction)
+            passMsg = "Placeholder"
+            #failMsg = generate_fail_message(instruction)
+            failMsg = "Placeholder"
             #PAF_SCRIPT += '\t<wait time="5000"></wait>\n'
             PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
             VALIDATION_SCRIPT += f'\n<valGroup groupId="{validation_name}">\n'
