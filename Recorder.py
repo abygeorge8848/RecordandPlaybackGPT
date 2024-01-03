@@ -1,6 +1,3 @@
-# First part of the code: Recording User Actions on Web UI
-#import spacy
-#from spacy.matcher import Matcher
 import tkinter as tk
 from tkinter import messagebox
 from selenium import webdriver
@@ -25,16 +22,9 @@ from refactored_js import listeners
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-
 recorded_actions = []
-
-
 paused_time_total= 0
 paused_at = None
-
-instruction_frame = None
-instruction_entry = None
-
 
 
 # Initialize Chrome driver and options
@@ -61,15 +51,12 @@ actions = ActionChains(driver)
 
 
 
-
 # Set up listeners
 def set_up_listeners():
     # Injecting JS to add click and input event listeners
     js_script = listeners
     result = driver.execute_script(js_script)
     print("The script has been injected successfully!")
-
-
 
 
 def monitor_page_load(stop_thread_flag):
@@ -121,7 +108,6 @@ def start_recording(url):
 # Modify stop_and_show_records to call GPT-4 script
 def stop_and_show_records():
 
-    gpt_input = []
     global driver, last_time, paused_time_total, stop_thread_flag
     if driver:
 
@@ -157,12 +143,9 @@ def stop_and_show_records():
             print("Exception in stop_and_show_records: ", e)
 
 
-        #if recorded_events:
-        #    recorded_events = json.loads(recorded_events)
         recorded_events = combined_events
 
         print(f"\n\nRecorded events: {recorded_events}\n\n\n")
-        #driver.execute_script("sessionStorage.removeItem('recordedEvents');")        
 
         last_time = start_time
         prev_event_was_input = False
@@ -179,22 +162,16 @@ def stop_and_show_records():
             if (not prev_event_was_input or event_type != "input") and ((event_type != "WaitForPageLoad" and not prev_event_was_waitforpageload) and not prev_event_was_wait):
                 wait_time = abs(math.ceil((timestamp - last_time - paused_time_total) / 1000.0)) * 1000
                 paused_time_total=0
-                input_string = f"wait : time={wait_time}, "
-                gpt_input.append(input_string)
                 event_queue.append({"event": "wait", "time": wait_time})
                 prev_event_was_wait = True
                 prev_event_was_waitforpageload == False
 
             if event_type == "click" or event_type == "dblClick" or event_type == "scroll" or event_type == "getText":
                 if combined_input:
-                    input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
-                    gpt_input.append(input_string)
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
                     combined_xpath = None
                 xpath = others[0]
-                input_string = f"{event_type} : xpath={xpath}, "
-                gpt_input.append(input_string)
                 event_queue.append({"event": event_type, "xpath": xpath})
                 prev_event_was_input = False 
                 prev_event_was_wait = False
@@ -207,8 +184,6 @@ def stop_and_show_records():
                     combined_input += char
                 else:
                     if combined_input:
-                        input_string = f"input : xpath={combined_xpath} value={combined_input}, "
-                        gpt_input.append(input_string)
                         event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = char
                     combined_xpath = xpath
@@ -220,8 +195,6 @@ def stop_and_show_records():
                 xpath = others[0]
                 instruction = others[1]
                 if combined_input:
-                    input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
-                    gpt_input.append(input_string)
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
                     combined_xpath = None
@@ -232,8 +205,6 @@ def stop_and_show_records():
             elif event_type == "loop" or event_type == "if-condition" or event_type == "validation-equals" or event_type == "validation-starts-with" or event_type == "validation-ends-with" or event_type == "variable-expression" or event_type == "validation-num-equals" or event_type == "validation-num-not-equals" or event_type == "validation-num-le" or event_type == "validation-num-ge" or event_type == "validation-contains":
                 instruction = others[1]
                 if combined_input:
-                    input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
-                    gpt_input.append(input_string)
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
                     combined_xpath = None
@@ -244,63 +215,22 @@ def stop_and_show_records():
 
             elif event_type == "WaitForPageLoad" and prev_event_was_waitforpageload == False:
                 if combined_input:
-                    input_string = f"input : xpath={combined_xpath} and value={combined_input}, "
-                    gpt_input.append(input_string)
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
                     combined_xpath = None
                 prev_event_was_waitforpageload = True
-                input_string = "WaitForPageLoad, "
-                gpt_input.append(input_string)
                 event_queue.append({"event": "WaitForPageLoad"})
                 prev_event_was_wait = False
 
             last_time = timestamp
         # Print any remaining combined input after loop ends
         if combined_input:
-            input_string += f'input : xpath="{combined_xpath}" value="{combined_input}'
-            gpt_input.append(input_string)
             event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
-            #print(f'input : xpath="{combined_xpath}" value="{combined_input}" ')
 
         stop_thread_flag.set()
         driver.quit()
 
 
-        def update_wait_times(input_str):
-            parts = input_str.split(', ')
-            updated_parts = []
-
-            j = 0
-            while j < len(parts):
-                if 'wait : time' in parts[j]:
-                    total_wait_time = int(parts[j].split('=')[1])
-                    j += 1
-                    while j < len(parts) and 'wait : time' in parts[j]:
-                        total_wait_time += int(parts[i].split('=')[1])
-                        j += 1
-                    updated_parts.append(f'wait : time={total_wait_time}')
-                else:
-                    updated_parts.append(parts[j])
-                    j += 1
-
-            return ', '.join(updated_parts)        
-
-        gpt_input = [update_wait_times(entry) for entry in gpt_input]
-
- 
-        #print(f"\n\n The value of gpt_input is : {gpt_input}")
-    
-        counter = 0
-        while counter < len(gpt_input)-1:
-            if (gpt_input[counter] == gpt_input[counter+1]) or (gpt_input[counter] == 'wait : time=0'):
-                gpt_input.pop(counter)
-            if 'scroll' in gpt_input[counter] and 'scroll' in gpt_input[counter+1]:
-                gpt_input.pop(counter)
-            
-            counter += 1
-
-        ###################################################
         def process_wait_in_queue(event_queue):
             i = 0
             while i < len(event_queue):
@@ -324,20 +254,7 @@ def stop_and_show_records():
             return event_queue
         
         event_queue = process_wait_in_queue(event_queue)
-        ###################################################
 
-
-        cleaned_gpt_input_1 = []
-        for element in gpt_input:
-            if "scroll" in element:
-                if not cleaned_gpt_input_1 or "scroll" not in cleaned_gpt_input_1[-1]:
-                    cleaned_gpt_input_1.append(element)
-            else:
-                cleaned_gpt_input_1.append(element)
-
-        gpt_input = cleaned_gpt_input_1
-
-        ###################################################
         i = 0
         while i < len(event_queue) - 1: 
             current_event = event_queue[i]["event"]
@@ -346,24 +263,14 @@ def stop_and_show_records():
                 event_queue.pop(i)
             else:
                 i += 1
-        ###################################################
+#
         print(f"\n\n The event_queue for execution is : {event_queue}\n\n")
 
         completed_code= ""
-        while len(gpt_input) > 0:
-            gpt_input_string = ""
-            input_count = 8 if len(gpt_input) >= 8 else len(gpt_input)
-            for i in range(input_count):
-                gpt_input_string += gpt_input.pop(0)
-            # Call GPT-4 script with formatted actions
-            gpt_input_string = gpt_input_string[:-2]
-            #print("\n\n")
-            print(f"The gpt_input_string is : \n{gpt_input_string}\n\n")
-            #print("\n\n\n The PAF code equavalent is : \n\n")
-            #completed_code += get_PAF_code(gpt_input_string) + "\n\n"
-            PAF_ACTIVITY = reformat_paf_activity(event_queue)
-            completed_code = PAF_ACTIVITY["PAF_SCRIPT"]
-            activity_id = PAF_ACTIVITY["activity_id"]
+        
+        PAF_ACTIVITY = reformat_paf_activity(event_queue)
+        completed_code = PAF_ACTIVITY["PAF_SCRIPT"]
+        activity_id = PAF_ACTIVITY["activity_id"]
         
 
         #flows_code = get_flow_code(completed_code)
@@ -425,6 +332,9 @@ def stop_and_show_records():
             file.flush()
             file.close()
             print("Finished writing to init.properties")
+
+    
+    return 1
      
 
 
