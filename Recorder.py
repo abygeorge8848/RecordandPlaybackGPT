@@ -16,7 +16,7 @@ import urllib3
 import threading
 from RunPAF import run_file, report_open
 from reformat_paf import reformat_paf_activity, reformat_paf_flow
-from refactored_js import listeners
+from refactored_js import listeners, xpath
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -103,6 +103,10 @@ def start_recording(url):
     last_time = time.time() * 1000
 
 
+
+def create_xpath():
+    xpath = driver.execute_async_script(xpath)
+    return xpath
 
 
 # Modify stop_and_show_records to call GPT-4 script

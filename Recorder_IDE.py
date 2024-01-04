@@ -1,8 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-from Recorder import start_recording, stop_and_show_records
+from Recorder import start_recording, stop_and_show_records, create_xpath
 from RunPAF import run_file, report_open
+from serverConn import conn
+import time
+
 
 def start_record():
     start_button.pack_forget()
@@ -153,7 +156,9 @@ def recording_paused():
 
 def get_text():
     variable_name = variable_name_entry.get()
-    # Implement your get_text logic here
+    xpath = create_xpath()
+    now = int(time.time() * 1000)
+    conn(["getText", now, xpath, variable_name])
     get_text_frame.pack_forget()
     update_steps(f"Get Text: {variable_name}")
 

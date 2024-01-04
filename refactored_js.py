@@ -227,13 +227,15 @@ if (!window.hasInjected) {
 """
 
 xpath = """
-           document.addEventListener('click', function getTextEvent(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var xpath = computeXPath(e.target);
-            console.log(xpath);
-            window.clickedElementXPath = xpath;
-        });
+            var callback = arguments[arguments.length - 1];  // The callback function provided by Selenium
+
+            document.addEventListener('click', function getTextEvent(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var xpath = computeXPath(e.target);
+                console.log(xpath);
+                callback(xpath);  // Call the callback with the XPath as the argument
+            });
 
             function computeXPath(element) {
                 if (!element) return null;
