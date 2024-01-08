@@ -16,7 +16,7 @@ import urllib3
 import threading
 from RunPAF import run_file, report_open
 from reformat_paf import reformat_paf_activity, reformat_paf_flow
-from refactored_js import listeners, xpath
+from refactored_js import listeners, xpath_js
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -104,8 +104,24 @@ def start_recording(url):
 
 
 
+def pause_recording_main():
+    global is_paused, paused_at, driver
+    is_paused = True
+    paused_at = time.time() * 1000
+    driver.execute_script("window.isPaused = true;")
+
+def resume_recording_main():
+    global is_paused, paused_at, paused_time_total, driver
+    if paused_at:
+        pause_duration = (time.time() * 1000) - paused_at
+        paused_time_total += pause_duration
+    is_paused = False
+    paused_at = None
+    driver.execute_script("window.isPaused = false;")
+
+
 def create_xpath():
-    xpath = driver.execute_async_script(xpath)
+    xpath = driver.execute_async_script(xpath_js)
     return xpath
 
 
@@ -170,13 +186,39 @@ def stop_and_show_records():
                 prev_event_was_wait = True
                 prev_event_was_waitforpageload == False
 
-            if event_type == "click" or event_type == "dblClick" or event_type == "scroll" or event_type == "getText":
+            if event_type == "click" or event_type == "dblClick" or event_type == "scroll":
                 if combined_input:
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
                     combined_xpath = None
                 xpath = others[0]
                 event_queue.append({"event": event_type, "xpath": xpath})
+                prev_event_was_input = False 
+                prev_event_was_wait = False
+                prev_event_was_waitforpageload == False
+
+            elif event_type == "getText":
+                if combined_input:
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
+                    combined_input = None
+                    combined_xpath = None
+                xpath = others[0]
+                variable = others[1]
+                event_queue.append({"event": event_type, "xpath": xpath, "variable": variable})
+                prev_event_was_input = False 
+                prev_event_was_wait = False
+                prev_event_was_waitforpageload == False
+
+            elif event_type == "validation-exists" or event_type == "validation-not-exists":
+                if combined_input:
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
+                    combined_input = None
+                    combined_xpath = None
+                xpath = others[0]
+                validation_name = others[1]
+                pass_msg = others[2]
+                fail_msg = others[3]
+                event_queue.append({"event": event_type, "xpath": xpath, "validation_name": validation_name, "pass_msg": pass_msg, "fail_msg": fail_msg})
                 prev_event_was_input = False 
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False

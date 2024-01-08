@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-from Recorder import start_recording, stop_and_show_records, create_xpath
+from Recorder import start_recording, stop_and_show_records, create_xpath, pause_recording_main, resume_recording_main
 from RunPAF import run_file, report_open
 from serverConn import conn
 import time
@@ -29,12 +29,14 @@ def stop_recording():
         run_button.pack(side=tk.LEFT, padx=5)
 
 def pause_recording():
+    pause_recording_main()
     pause_resume_button.config(text="Resume", command=resume_recording)
     dropdown_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
     update_steps("Pause Recording")
     enable_dropdown_options()
 
 def resume_recording():
+    resume_recording_main()
     pause_resume_button.config(text="Pause", command=pause_recording)
     dropdown_frame.pack_forget()
     variable_value_frame.pack_forget()
@@ -155,23 +157,31 @@ def recording_paused():
     return pause_resume_button.cget('text') == "Resume"
 
 def get_text():
-    variable_name = variable_name_entry.get()
+    variable_name = getText_variable_name_entry.get()
     xpath = create_xpath()
     now = int(time.time() * 1000)
-    conn(["getText", now, xpath, variable_name])
+    conn([["getText", now, xpath, variable_name]])
     get_text_frame.pack_forget()
     update_steps(f"Get Text: {variable_name}")
 
 def validate_exists():
-    validation_name = validation_name_entry.get()
-    # Implement your validation logic here
+    validation_name = validation_exists_name_entry.get()
+    validation_pass_msg = valExists_pass_msg_entry.get()
+    validation_fail_msg = valExists_fail_msg_entry.get()
+    xpath = create_xpath()
+    now = int(time.time() * 1000)
+    conn([["validation-exists", now, xpath, validation_name, validation_pass_msg, validation_fail_msg]])
     validation_exists_frame.pack_forget()
     update_steps(f"Validate-exists: {validation_name}")
 
 def validate_not_exists():
-    validation_name = validation_name_entry.get()
-    # Implement your validation logic here
-    validation_not_exists_frame.pack_forget()
+    validation_name = validation_not_exists_name_entry.get()
+    validation_pass_msg = valNotExists_pass_msg_entry.get()
+    validation_fail_msg = valNotExists_fail_msg_entry.get()
+    xpath = create_xpath()
+    now = int(time.time() * 1000)
+    conn([["validation-not-exists", now, xpath, validation_name, validation_pass_msg, validation_fail_msg]])
+    validation_exists_frame.pack_forget()
     update_steps(f"Validate-not-exists: {validation_name}")
 
 def validate_equals():
@@ -240,12 +250,15 @@ dropdown['values'] = ["getText", "variable-value", "validation-exists", "validat
 dropdown.bind("<<ComboboxSelected>>", handle_dropdown_selection)
 
 dropdown_frame = tk.Frame(sidebar)
-dropdown.pack(fill=tk.X)
+dropdown.pack(fill=tk.X)       
 
 get_text_frame = tk.Frame(sidebar)
-variable_name_entry = tk.Entry(get_text_frame)
-variable_name_entry.insert(0, 'Enter variable name')
-variable_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+variable_frame = tk.Frame(get_text_frame)
+variable_name_label = tk.Label(variable_frame, text="Variable Name:")
+variable_name_label.pack(side=tk.LEFT, padx=5, pady=5)
+getText_variable_name_entry = tk.Entry(variable_frame)
+getText_variable_name_entry.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+variable_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
 snapshot_frame = tk.Frame(get_text_frame)
 snapshot_label = tk.Label(snapshot_frame, text="Snapshot")
 snapshot_label.pack(side=tk.LEFT, padx=5)
@@ -261,15 +274,15 @@ get_text_button.pack(side=tk.TOP)
 
 
 validation_exists_frame = tk.Frame(sidebar)
-validation_name_entry = tk.Entry(validation_exists_frame)
-validation_name_entry.insert(0, 'Enter validation name')
-validation_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-pass_msg_entry = tk.Entry(validation_exists_frame)
-pass_msg_entry.insert(0, 'Enter pass message')
-pass_msg_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-fail_msg_entry = tk.Entry(validation_exists_frame)
-fail_msg_entry.insert(0, 'Enter fail message')
-fail_msg_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+validation_exists_name_entry = tk.Entry(validation_exists_frame)
+validation_exists_name_entry.insert(0, 'Enter validation name')
+validation_exists_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+valExists_pass_msg_entry = tk.Entry(validation_exists_frame)
+valExists_pass_msg_entry.insert(0, 'Enter pass message')
+valExists_pass_msg_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+valExists_fail_msg_entry = tk.Entry(validation_exists_frame)
+valExists_fail_msg_entry.insert(0, 'Enter fail message')
+valExists_fail_msg_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 snapshot_frame = tk.Frame(validation_exists_frame)
 snapshot_label = tk.Label(snapshot_frame, text="Snapshot")
 snapshot_label.pack(side=tk.LEFT, padx=5)
@@ -285,15 +298,15 @@ validate_button.pack(side=tk.TOP, pady=10)
 
 
 validation_not_exists_frame = tk.Frame(sidebar)
-validation_name_entry = tk.Entry(validation_not_exists_frame)
-validation_name_entry.insert(0, 'Enter validation name')
-validation_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-pass_msg_entry = tk.Entry(validation_not_exists_frame)
-pass_msg_entry.insert(0, 'Enter pass message')
-pass_msg_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-fail_msg_entry = tk.Entry(validation_not_exists_frame)
-fail_msg_entry.insert(0, 'Enter fail message')
-fail_msg_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+validation_not_exists_name_entry = tk.Entry(validation_not_exists_frame)
+validation_not_exists_name_entry.insert(0, 'Enter validation name')
+validation_not_exists_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+valNotExists_pass_msg_entry = tk.Entry(validation_not_exists_frame)
+valNotExists_pass_msg_entry.insert(0, 'Enter pass message')
+valNotExists_pass_msg_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+valNotExists_fail_msg_entry = tk.Entry(validation_not_exists_frame)
+valNotExists_fail_msg_entry.insert(0, 'Enter fail message')
+valNotExists_fail_msg_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 snapshot_frame = tk.Frame(validation_not_exists_frame)
 snapshot_label = tk.Label(snapshot_frame, text="Snapshot")
 snapshot_label.pack(side=tk.LEFT, padx=5)

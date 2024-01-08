@@ -32,25 +32,26 @@ def reformat_paf_activity(event_queue):
             #PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
             PAF_SCRIPT += f'\t<scroll xpath="{xpath}"></scroll>\n'
         elif event["event"] == "getText":
-            getText_variable = name_engine.get_variable_name()
+            #getText_variable = name_engine.get_variable_name()
             xpath = event["xpath"]
+            variable = event["variable"]
             PAF_SCRIPT += f'\t<WaitTillElement xpath="{xpath}" waitcondition="visible"></WaitTillElement>\n'
             #PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
-            PAF_SCRIPT += f'\t<getText xpath="{xpath}" variable="{getText_variable}"></getText>\n'
+            PAF_SCRIPT += f'\t<getText xpath="{xpath}" variable="{variable}"></getText>\n'
         elif event["event"] == "validation-exists" or event["event"] == "validation-not-exists":
-            validation_name = name_engine.get_validation_name()
+            validation_name = event["validation_name"]
             xpath = event["xpath"]
-            instruction = event["instruction"]
+            #instruction = event["instruction"]
             #passMsg = generate_pass_message(instruction)
-            passMsg = "Placeholder"
+            passMsg = event["pass_msg"]
             #failMsg = generate_fail_message(instruction)
-            failMsg = "Placeholder"
+            failMsg = event["fail_msg"]
             #PAF_SCRIPT += '\t<wait time="5000"></wait>\n'
             PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
             VALIDATION_SCRIPT += f'\n<valGroup groupId="{validation_name}">\n'
-            if event["event"] == "validate-exists":
+            if event["event"] == "validation-exists":
                 VALIDATION_SCRIPT += f'\t<validate xpath="{xpath}" exists="true" snapshot="true" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'
-            elif event["event"] == "validate-not-exists":
+            elif event["event"] == "validation-not-exists":
                 VALIDATION_SCRIPT += f'\t<validate xpath="{xpath}" exists="false" snapshot="true" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'
             VALIDATION_SCRIPT += f'</valGroup>\n'
     

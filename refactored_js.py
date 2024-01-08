@@ -226,7 +226,7 @@ if (!window.hasInjected) {
 }
 """
 
-xpath = """
+xpath_js = """
             var callback = arguments[arguments.length - 1];  // The callback function provided by Selenium
 
             document.addEventListener('click', function getTextEvent(e) {
