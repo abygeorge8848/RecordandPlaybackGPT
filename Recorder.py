@@ -209,6 +209,18 @@ def stop_and_show_records():
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
 
+            elif event_type == "variable-value":
+                if combined_input:
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
+                    combined_input = None
+                    combined_xpath = None
+                variable_name = others[0]
+                variable_value = others[1]
+                event_queue.append({"event": event_type, "name": variable_name, "value": variable_value})
+                prev_event_was_input = False 
+                prev_event_was_wait = False
+                prev_event_was_waitforpageload == False
+
             elif event_type == "validation-exists" or event_type == "validation-not-exists":
                 if combined_input:
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})

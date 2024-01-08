@@ -209,8 +209,10 @@ def validate_num_not_equals():
     update_steps(f"validate-num-not-equals: {validation_name}")
 
 def variable_value():
-    variable_name = variable_name_entry.get()
-    # Implement your validation logic here
+    variable_name = variable_value_name_entry.get()
+    variable_value = variable_value_entry.get()
+    now = int(time.time() * 1000)
+    conn([["variable-value", now, variable_name, variable_value]])
     variable_value_frame.pack_forget()
     update_steps(f"variable-value: {variable_name}")
 
@@ -441,9 +443,9 @@ validate_button.pack(side=tk.TOP, pady=14)
 
 
 variable_value_frame = tk.Frame(sidebar)
-variable_name_entry = tk.Entry(variable_value_frame)
-variable_name_entry.insert(0, 'Enter variable name')
-variable_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+variable_value_name_entry = tk.Entry(variable_value_frame)
+variable_value_name_entry.insert(0, 'Enter variable name')
+variable_value_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 variable_value_entry = tk.Entry(variable_value_frame)
 variable_value_entry.insert(0, 'Enter variable value')
 variable_value_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
@@ -457,7 +459,7 @@ before_check = tk.Checkbutton(snapshot_frame, text="Before", variable=before_var
 after_check.pack(side=tk.LEFT, padx=5)
 before_check.pack(side=tk.LEFT, padx=5)
 snapshot_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
-validate_button = tk.Button(variable_value_frame, text="Validate", command=variable_value)
+validate_button = tk.Button(variable_value_frame, text="Variable", command=variable_value)
 validate_button.pack(side=tk.TOP, pady=8)
 
 

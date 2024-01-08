@@ -38,6 +38,10 @@ def reformat_paf_activity(event_queue):
             PAF_SCRIPT += f'\t<WaitTillElement xpath="{xpath}" waitcondition="visible"></WaitTillElement>\n'
             #PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
             PAF_SCRIPT += f'\t<getText xpath="{xpath}" variable="{variable}"></getText>\n'
+        elif event["event"] == "variable-value":
+            variable_name = event["name"]
+            variable_value = event["value"]
+            PAF_SCRIPT += f'\t<variable keyName="{variable_name}" value="{variable_value}"></variable>\n'
         elif event["event"] == "validation-exists" or event["event"] == "validation-not-exists":
             validation_name = event["validation_name"]
             xpath = event["xpath"]
