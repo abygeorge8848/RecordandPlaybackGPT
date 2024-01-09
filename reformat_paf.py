@@ -58,6 +58,21 @@ def reformat_paf_activity(event_queue):
             elif event["event"] == "validation-not-exists":
                 VALIDATION_SCRIPT += f'\t<validate xpath="{xpath}" exists="false" snapshot="true" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'
             VALIDATION_SCRIPT += f'</valGroup>\n'
+        elif event["event"] == "validation-equals" or event["event"] == "validation-not-equals":
+            validation_name = event["validation_name"]
+            variable1 = event["variable1"]
+            variable2 = event["variable2"]
+            passMsg = event["pass_msg"]
+            failMsg = event["fail_msg"]
+            PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
+            VALIDATION_SCRIPT += f'\n<valGroup groupId="{validation_name}">\n'
+            if event["event"] == "validation-equals":
+                VALIDATION_SCRIPT += f'\t<validate variable="{variable1}" condition="equals" value="{variable}" passMsg="{passMsg}" failMsg=""{failMsg}></validate>\n'
+            elif event["event"] == "validation-not-equals":
+                VALIDATION_SCRIPT += f'\t<validate variable="{variable1}" condition="not_equals" value="{variable}" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'
+            VALIDATION_SCRIPT += f'</valGroup>\n'
+
+            
     
 
     activity_name = name_engine.get_activity_name()

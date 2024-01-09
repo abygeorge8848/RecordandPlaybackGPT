@@ -230,7 +230,22 @@ def stop_and_show_records():
                 validation_name = others[1]
                 pass_msg = others[2]
                 fail_msg = others[3]
-                event_queue.append({"event": event_type, "xpath": xpath, "validation_name": validation_name, "pass_msg": pass_msg, "fail_msg": fail_msg})
+                event_queue.append({"event": event_type, "validation_name": validation_name, "xpath": xpath, "pass_msg": pass_msg, "fail_msg": fail_msg})
+                prev_event_was_input = False 
+                prev_event_was_wait = False
+                prev_event_was_waitforpageload == False
+
+            elif event_type == "validation-equals" or event_type == "validation-not-equals":
+                if combined_input:
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
+                    combined_input = None
+                    combined_xpath = None
+                validation_name = others[0]
+                variable1 = others[1]
+                variable2 = others[2]
+                pass_msg = others[3]
+                fail_msg = others[4]
+                event_queue.append({"event": event_type, "validation_name": validation_name, "variable1": variable1, "variable2": variable2, "pass_msg": pass_msg, "fail_msg": fail_msg})
                 prev_event_was_input = False 
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
@@ -246,17 +261,6 @@ def stop_and_show_records():
                     combined_input = char
                     combined_xpath = xpath
                 prev_event_was_input = True
-                prev_event_was_wait = False
-                prev_event_was_waitforpageload == False
-            
-            elif event_type == "validation-exists" or event_type == "validation-not-exists" :
-                xpath = others[0]
-                instruction = others[1]
-                if combined_input:
-                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
-                    combined_input = None
-                    combined_xpath = None
-                event_queue.append({"event": event_type, "xpath": xpath, "instruction": instruction})
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
 
