@@ -42,7 +42,7 @@ def reformat_paf_activity(event_queue):
             variable_name = event["name"]
             variable_value = event["value"]
             PAF_SCRIPT += f'\t<variable keyName="{variable_name}" value="{variable_value}"></variable>\n'
-        elif event["event"] == "validation-exists" or event["event"] == "validation-not-exists":
+        elif event["event"] in ["validation-exists", "validation-not-exists"]:
             validation_name = event["validation_name"]
             xpath = event["xpath"]
             #instruction = event["instruction"]
@@ -58,7 +58,7 @@ def reformat_paf_activity(event_queue):
             elif event["event"] == "validation-not-exists":
                 VALIDATION_SCRIPT += f'\t<validate xpath="{xpath}" exists="false" snapshot="true" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'
             VALIDATION_SCRIPT += f'</valGroup>\n'
-        elif event["event"] == "validation-equals" or event["event"] == "validation-not-equals":
+        elif event["event"] == ["validation-equals", "validation-not-equals", "validation-num-equals", "validation-num-not-equals"]:
             validation_name = event["validation_name"]
             variable1 = event["variable1"]
             variable2 = event["variable2"]
@@ -70,6 +70,10 @@ def reformat_paf_activity(event_queue):
                 VALIDATION_SCRIPT += f'\t<validate variable="{variable1}" condition="equals" value="{variable}" passMsg="{passMsg}" failMsg=""{failMsg}></validate>\n'
             elif event["event"] == "validation-not-equals":
                 VALIDATION_SCRIPT += f'\t<validate variable="{variable1}" condition="not_equals" value="{variable}" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'
+            elif event["event"] == "validation-num-equals":
+                VALIDATION_SCRIPT += f'\t<validate variable="{variable1}" condition="num_equals" value="{variable}" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'
+            elif event["event"] == "validation-num-not-equals":
+                VALIDATION_SCRIPT += f'\t<validate variable="{variable1}" condition="num_not_equals" value="{variable}" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'
             VALIDATION_SCRIPT += f'</valGroup>\n'
 
             

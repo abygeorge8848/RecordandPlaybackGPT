@@ -235,7 +235,7 @@ def stop_and_show_records():
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
 
-            elif event_type == "validation-equals" or event_type == "validation-not-equals":
+            elif event_type in ["validation-equals", "validation-not-equals", "validation-num-equals", "validation-num-not-equals"]:
                 if combined_input:
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
