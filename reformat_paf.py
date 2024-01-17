@@ -10,6 +10,8 @@ def reformat_paf_activity(event_queue):
     for event in event_queue:
         if event["event"] == "WaitForPageLoad":
             PAF_SCRIPT += "\t<WaitForPageLoad/>\n"
+        elif event["event"] == "end-if":
+            PAF_SCRIPT += "\t</if>\n"
         elif event["event"] == "click":
             xpath = event["xpath"]
             PAF_SCRIPT += f'\t<WaitTillElement xpath="{xpath}" waitcondition="click"></WaitTillElement>\n'
@@ -73,8 +75,12 @@ def reformat_paf_activity(event_queue):
             before = event["before"]
             passMsg = event["pass_msg"]
             failMsg = event["fail_msg"]
+            if_condition = event["if_condition"]
             #PAF_SCRIPT += '\t<wait time="5000"></wait>\n'
-            PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
+            if not if_condition:
+                PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
+            else:
+                PAF_SCRIPT += f'\t<if valGroupIds="{validation_name}">\n'
             VALIDATION_SCRIPT += f'\n<valGroup groupId="{validation_name}">\n'
             if event["event"] == "validation-exists":
                 VALIDATION_SCRIPT += f'\t<validate xpath="{xpath}" exists="true" snapshot="true" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'
@@ -93,6 +99,7 @@ def reformat_paf_activity(event_queue):
             variable2 = event["variable2"]
             passMsg = event["pass_msg"]
             failMsg = event["fail_msg"]
+            if_condition = event["if_condition"]
             PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
             VALIDATION_SCRIPT += f'\n<valGroup groupId="{validation_name}">\n'
             if event["event"] == "validation-equals":

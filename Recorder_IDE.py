@@ -58,6 +58,13 @@ def run_script():
         run_button.pack_forget()
         open_report_button.pack(side=tk.LEFT, padx=5)
 
+
+def end_if():
+    now = int(time.time() * 1000)
+    conn([["end-if", now]])
+    update_steps(f"End if condition segment")
+    end_if_button.pack_forget()
+
 def enable_dropdown_options():
     dropdown.configure(state='readonly')
 
@@ -68,10 +75,11 @@ def disable_dropdown_options():
 
 def show_validation_menu(event):
     # Display the menu if the selected option is "validation"
-    if dropdown_var.get() == "validation":
-        x = dropdown.winfo_rootx()
-        y = dropdown.winfo_rooty() + dropdown.winfo_height()
-        validation_menu.tk_popup(x, y, 0)
+    if recording_paused():
+        if dropdown_var.get() == "validation" or dropdown_var.get() == "if-condition":
+            x = dropdown.winfo_rootx()
+            y = dropdown.winfo_rooty() + dropdown.winfo_height()
+            validation_menu.tk_popup(x, y, 0)
 
 def create_validation_menu():
     # Create the validation submenu
@@ -84,6 +92,7 @@ def on_validation_menu_selection(value):
     # Handle the selection from the validation menu
     print(value)
     validation_menu.unpost()
+
 
 def handle_validation_option(selected_validation):
     if recording_paused():
@@ -199,6 +208,10 @@ def get_text():
     update_steps(f"Get Text: {variable_name}")
 
 def validate_exists():
+    if_condition = False
+    if dropdown_var.get() == "if-condition":
+        if_condition = True
+        end_if_button.pack(side=tk.LEFT, padx=5)
     validate_exists_after_checked = validation_exists_after_var.get()
     validate_exists_before_checked = validation_exists_before_var.get()
     validation_name = validation_exists_name_entry.get()
@@ -206,11 +219,18 @@ def validate_exists():
     validation_fail_msg = valExists_fail_msg_entry.get()
     xpath = create_xpath()
     now = int(time.time() * 1000)
-    conn([["validation-exists", now, xpath, validation_name, validation_pass_msg, validation_fail_msg, validate_exists_after_checked, validate_exists_before_checked]])
+    conn([["validation-exists", now, xpath, validation_name, validation_pass_msg, validation_fail_msg, validate_exists_after_checked, validate_exists_before_checked, if_condition]])
     validation_exists_frame.pack_forget()
-    update_steps(f"Validate-exists: {validation_name}")
+    if dropdown_var.get() == "validation":
+        update_steps(f"Validate-exists: {validation_name}")
+    else:
+        update_steps(f"if-exists starts: {validation_name}")
 
 def validate_not_exists():
+    if_condition = False
+    if dropdown_var.get() == "if-condition":
+        if_condition = True
+        end_if_button.pack(side=tk.LEFT, padx=5)
     validate_not_exists_after_checked = validation_not_exists_after_var.get()
     validate_not_exists_before_checked = validation_not_exists_before_var.get()
     validation_name = validation_not_exists_name_entry.get()
@@ -218,11 +238,18 @@ def validate_not_exists():
     validation_fail_msg = valNotExists_fail_msg_entry.get()
     xpath = create_xpath()
     now = int(time.time() * 1000)
-    conn([["validation-not-exists", now, xpath, validation_name, validation_pass_msg, validation_fail_msg, validate_not_exists_after_checked, validate_not_exists_before_checked]])
+    conn([["validation-not-exists", now, xpath, validation_name, validation_pass_msg, validation_fail_msg, validate_not_exists_after_checked, validate_not_exists_before_checked, if_condition]])
     variable_value_frame.pack_forget()
-    update_steps(f"Validate-not-exists: {validation_name}")
+    if dropdown_var.get() == "validation":
+        update_steps(f"Validate-not-exists: {validation_name}")
+    else:
+        update_steps(f"if-not-exists starts: {validation_name}")
 
 def validate_equals():
+    if_condition = False
+    if dropdown_var.get() == "if-condition":
+        if_condition = True
+        end_if_button.pack(side=tk.LEFT, padx=5)
     validate_equals_after_checked = validation_equals_after_var.get()
     validate_equals_before_checked = validation_equals_before_var.get()
     validation_name = equals_validation_name_entry.get()
@@ -231,11 +258,18 @@ def validate_equals():
     validation_pass_msg = equals_pass_msg_entry.get()
     validation_fail_msg = equals_fail_msg_entry.get()
     now = int(time.time() * 1000)
-    conn([["validation-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg, validate_equals_after_checked, validate_equals_before_checked]])
+    conn([["validation-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg, validate_equals_after_checked, validate_equals_before_checked, if_condition]])
     validation_equals_frame.pack_forget()
-    update_steps(f"validate-equals: {validation_name}")
+    if dropdown_var.get() == "validation":
+        update_steps(f"validate-equals: {validation_name}")
+    else:
+        update_steps(f"if-equals starts: {validation_name}")
 
 def validate_not_equals():
+    if_condition = False
+    if dropdown_var.get() == "if-condition":
+        if_condition = True
+        end_if_button.pack(side=tk.LEFT, padx=5)
     validate_not_equals_after_checked = validation_not_equals_after_var.get()
     validate_not_equals_before_checked = validation_not_equals_before_var.get()
     validation_name = not_equals_validation_name_entry.get()
@@ -244,11 +278,18 @@ def validate_not_equals():
     validation_pass_msg = not_equals_pass_msg_entry.get()
     validation_fail_msg = not_equals_fail_msg_entry.get()
     now = int(time.time() * 1000)
-    conn([["validation-not-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg, validate_not_equals_after_checked, validate_not_equals_before_checked]])
+    conn([["validation-not-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg, validate_not_equals_after_checked, validate_not_equals_before_checked, if_condition]])
     validation_not_equals_frame.pack_forget()
-    update_steps(f"validate-not-equals: {validation_name}")
+    if dropdown_var.get() == "validation":
+        update_steps(f"validate-not-equals: {validation_name}")
+    else:
+        update_steps(f"if-not-equals starts: {validation_name}")
 
 def validate_num_equals():
+    if_condition = False
+    if dropdown_var.get() == "if-condition":
+        if_condition = True
+        end_if_button.pack(side=tk.LEFT, padx=5)
     validate_num_equals_after_checked = validation_num_equals_after_var.get()
     validate_num_equals_before_checked = validation_num_equals_before_var.get()
     validation_name = num_equals_validation_name_entry.get()
@@ -257,11 +298,18 @@ def validate_num_equals():
     validation_pass_msg = num_equals_pass_msg_entry.get()
     validation_fail_msg = num_equals_fail_msg_entry.get()
     now = int(time.time() * 1000)
-    conn([["validation-num-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg, validate_num_equals_after_checked, validate_num_equals_before_checked]])
+    conn([["validation-num-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg, validate_num_equals_after_checked, validate_num_equals_before_checked, if_condition]])
     validation_num_equals_frame.pack_forget()
-    update_steps(f"validate-num-equals: {validation_name}")
+    if dropdown_var.get() == "validation":
+        update_steps(f"validate-num-equals: {validation_name}")
+    else:
+        update_steps(f"if-num-equals starts: {validation_name}")
 
 def validate_num_not_equals():
+    if_condition = False
+    if dropdown_var.get() == "if-condition":
+        if_condition = True
+        end_if_button.pack(side=tk.LEFT, padx=5)
     validate_num_not_equals_after_checked = validation_num_not_equals_after_var.get()
     validate_num_not_equals_before_checked = validation_num_not_equals_before_var.get()
     validation_name = num_not_equals_validation_name_entry.get()
@@ -270,9 +318,12 @@ def validate_num_not_equals():
     validation_pass_msg = num_not_equals_pass_msg_entry.get()
     validation_fail_msg = num_not_equals_fail_msg_entry.get()
     now = int(time.time() * 1000)
-    conn([["validation-num-not-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg, validate_num_not_equals_after_checked, validate_num_not_equals_before_checked]])
+    conn([["validation-num-not-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg, validate_num_not_equals_after_checked, validate_num_not_equals_before_checked, if_condition]])
     validation_num_not_equals_frame.pack_forget()
-    update_steps(f"validate-num-not-equals: {validation_name}")
+    if dropdown_var.get() == "validation":
+        update_steps(f"validate-num-not-equals: {validation_name}")
+    else:
+        update_steps(f"if-num-not-equals starts: {validation_name}")
 
 def variable_value():
     variable_value_after_checked = variable_value_after_var.get()
@@ -307,6 +358,7 @@ run_button = tk.Button(nav_bar, text="Run Script", command=run_script)
 open_report_button = tk.Button(nav_bar, text="Open Report", command=report_open)
 stop_button = tk.Button(nav_bar, text="Stop", command=stop_recording)
 pause_resume_button = tk.Button(nav_bar, text="Pause", command=pause_recording)
+end_if_button = tk.Button(nav_bar, text="End if segment", command=end_if)
 
 start_button.pack(side=tk.LEFT, padx=5)
 
@@ -316,7 +368,7 @@ sidebar.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
 
 dropdown_var = tk.StringVar()
 dropdown = ttk.Combobox(sidebar, textvariable=dropdown_var, state="readonly")
-dropdown['values'] = ["getText", "variable-value", "validation"]
+dropdown['values'] = ["getText", "variable-value", "validation", "if-condition"]
 dropdown.bind("<<ComboboxSelected>>", handle_dropdown_selection)
 dropdown.pack(fill=tk.X)
 
@@ -351,7 +403,7 @@ get_text_button.pack(side=tk.TOP)
 
 
 validation_exists_frame = tk.Frame(sidebar)
-title_label = tk.Label(validation_exists_frame, text='Validation - exists')
+title_label = tk.Label(validation_exists_frame, text='Exists')
 title_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 validation_exists_name_entry = tk.Entry(validation_exists_frame)
 validation_exists_name_entry.insert(0, 'Enter validation name(optional)')
@@ -377,7 +429,7 @@ validate_button.pack(side=tk.TOP, pady=10)
 
 
 validation_not_exists_frame = tk.Frame(sidebar)
-title_label = tk.Label(validation_not_exists_frame, text='Validation - not exists')
+title_label = tk.Label(validation_not_exists_frame, text='Not exists')
 title_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 validation_not_exists_name_entry = tk.Entry(validation_not_exists_frame)
 validation_not_exists_name_entry.insert(0, 'Enter validation name(optional)')
@@ -403,7 +455,7 @@ validate_button.pack(side=tk.TOP, pady=10)
 
 
 validation_equals_frame = tk.Frame(sidebar)
-title_label = tk.Label(validation_equals_frame, text='Validation - equals')
+title_label = tk.Label(validation_equals_frame, text='Equals')
 title_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 equals_variable1_value_entry = tk.Entry(validation_equals_frame)
 equals_variable1_value_entry.insert(0, 'Enter value 1 value')
@@ -434,7 +486,7 @@ validate_button = tk.Button(validation_equals_frame, text="Validate", command=va
 validate_button.pack(side=tk.TOP, pady=14)
 
 validation_not_equals_frame = tk.Frame(sidebar)
-title_label = tk.Label(validation_not_equals_frame, text='Validation - not equals')
+title_label = tk.Label(validation_not_equals_frame, text='Not equals')
 title_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 not_equals_variable1_value_entry = tk.Entry(validation_not_equals_frame)
 not_equals_variable1_value_entry.insert(0, 'Enter value 1 value')
@@ -466,7 +518,7 @@ validate_button.pack(side=tk.TOP, pady=14)
 
 
 validation_num_equals_frame = tk.Frame(sidebar)
-title_label = tk.Label(validation_num_equals_frame, text='Validation - num equals')
+title_label = tk.Label(validation_num_equals_frame, text='Num equals')
 title_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 num_equals_variable1_value_entry = tk.Entry(validation_num_equals_frame)
 num_equals_variable1_value_entry.insert(0, 'Enter value 1 value')
@@ -498,7 +550,7 @@ validate_button.pack(side=tk.TOP, pady=14)
 
 
 validation_num_not_equals_frame = tk.Frame(sidebar)
-title_label = tk.Label(validation_num_not_equals_frame, text='Validation - num not equals')
+title_label = tk.Label(validation_num_not_equals_frame, text='Num not equals')
 title_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 num_not_equals_variable1_value_entry = tk.Entry(validation_num_not_equals_frame)
 num_not_equals_variable1_value_entry.insert(0, 'Enter value 1 value')
@@ -530,6 +582,8 @@ validate_button.pack(side=tk.TOP, pady=14)
 
 
 variable_value_frame = tk.Frame(sidebar)
+title_label = tk.Label(variable_value_frame, text='Variable value')
+title_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 variable_value_name_entry = tk.Entry(variable_value_frame)
 variable_value_name_entry.insert(0, 'Enter variable name')
 variable_value_name_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
