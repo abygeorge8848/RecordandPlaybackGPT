@@ -204,7 +204,9 @@ def stop_and_show_records():
                     combined_xpath = None
                 xpath = others[0]
                 variable = others[1]
-                event_queue.append({"event": event_type, "xpath": xpath, "variable": variable})
+                after = others[2]
+                before = others[3]
+                event_queue.append({"event": event_type, "xpath": xpath, "variable": variable, "after": after, "before": before})
                 prev_event_was_input = False 
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
@@ -216,7 +218,9 @@ def stop_and_show_records():
                     combined_xpath = None
                 variable_name = others[0]
                 variable_value = others[1]
-                event_queue.append({"event": event_type, "name": variable_name, "value": variable_value})
+                after = others[2]
+                before = others[3]
+                event_queue.append({"event": event_type, "name": variable_name, "value": variable_value, "after": after, "before": before})
                 prev_event_was_input = False 
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
@@ -230,7 +234,9 @@ def stop_and_show_records():
                 validation_name = others[1]
                 pass_msg = others[2]
                 fail_msg = others[3]
-                event_queue.append({"event": event_type, "validation_name": validation_name, "xpath": xpath, "pass_msg": pass_msg, "fail_msg": fail_msg})
+                after = others[4]
+                before = others[5]
+                event_queue.append({"event": event_type, "validation_name": validation_name, "xpath": xpath, "pass_msg": pass_msg, "fail_msg": fail_msg, "after": after, "before": before})
                 prev_event_was_input = False 
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
@@ -245,7 +251,9 @@ def stop_and_show_records():
                 variable2 = others[2]
                 pass_msg = others[3]
                 fail_msg = others[4]
-                event_queue.append({"event": event_type, "validation_name": validation_name, "variable1": variable1, "variable2": variable2, "pass_msg": pass_msg, "fail_msg": fail_msg})
+                after = others[5]
+                before = others[6]
+                event_queue.append({"event": event_type, "validation_name": validation_name, "variable1": variable1, "variable2": variable2, "pass_msg": pass_msg, "fail_msg": fail_msg, "after": after, "before": before})
                 prev_event_was_input = False 
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
@@ -264,7 +272,7 @@ def stop_and_show_records():
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
 
-            elif event_type == "loop" or event_type == "if-condition" or event_type == "validation-equals" or event_type == "validation-starts-with" or event_type == "validation-ends-with" or event_type == "variable-expression" or event_type == "validation-num-equals" or event_type == "validation-num-not-equals" or event_type == "validation-num-le" or event_type == "validation-num-ge" or event_type == "validation-contains":
+            elif event_type == "loop" or event_type == "if-condition" or event_type == "validation-equals" or event_type == "validation-starts-with" or event_type == "validation-ends-with" or event_type == "variable-expression" or event_type == "validation-num-le" or event_type == "validation-num-ge" or event_type == "validation-contains":
                 instruction = others[1]
                 if combined_input:
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})

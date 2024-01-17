@@ -194,7 +194,7 @@ def get_text():
     variable_name = getText_variable_name_entry.get()
     xpath = create_xpath()
     now = int(time.time() * 1000)
-    conn([["getText", now, xpath, variable_name]])
+    conn([["getText", now, xpath, variable_name, get_text_after_checked, get_text_before_checked]])
     get_text_frame.pack_forget()
     update_steps(f"Get Text: {variable_name}")
 
@@ -206,7 +206,7 @@ def validate_exists():
     validation_fail_msg = valExists_fail_msg_entry.get()
     xpath = create_xpath()
     now = int(time.time() * 1000)
-    conn([["validation-exists", now, xpath, validation_name, validation_pass_msg, validation_fail_msg]])
+    conn([["validation-exists", now, xpath, validation_name, validation_pass_msg, validation_fail_msg, validate_exists_after_checked, validate_exists_before_checked]])
     validation_exists_frame.pack_forget()
     update_steps(f"Validate-exists: {validation_name}")
 
@@ -218,7 +218,7 @@ def validate_not_exists():
     validation_fail_msg = valNotExists_fail_msg_entry.get()
     xpath = create_xpath()
     now = int(time.time() * 1000)
-    conn([["validation-not-exists", now, xpath, validation_name, validation_pass_msg, validation_fail_msg]])
+    conn([["validation-not-exists", now, xpath, validation_name, validation_pass_msg, validation_fail_msg, validate_not_exists_after_checked, validate_not_exists_before_checked]])
     variable_value_frame.pack_forget()
     update_steps(f"Validate-not-exists: {validation_name}")
 
@@ -231,7 +231,7 @@ def validate_equals():
     validation_pass_msg = equals_pass_msg_entry.get()
     validation_fail_msg = equals_fail_msg_entry.get()
     now = int(time.time() * 1000)
-    conn([["validation-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg]])
+    conn([["validation-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg, validate_equals_after_checked, validate_equals_before_checked]])
     validation_equals_frame.pack_forget()
     update_steps(f"validate-equals: {validation_name}")
 
@@ -244,7 +244,7 @@ def validate_not_equals():
     validation_pass_msg = not_equals_pass_msg_entry.get()
     validation_fail_msg = not_equals_fail_msg_entry.get()
     now = int(time.time() * 1000)
-    conn([["validation-not-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg]])
+    conn([["validation-not-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg, validate_not_equals_after_checked, validate_not_equals_before_checked]])
     validation_not_equals_frame.pack_forget()
     update_steps(f"validate-not-equals: {validation_name}")
 
@@ -257,7 +257,7 @@ def validate_num_equals():
     validation_pass_msg = num_equals_pass_msg_entry.get()
     validation_fail_msg = num_equals_fail_msg_entry.get()
     now = int(time.time() * 1000)
-    conn([["validation-num-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg]])
+    conn([["validation-num-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg, validate_num_equals_after_checked, validate_num_equals_before_checked]])
     validation_num_equals_frame.pack_forget()
     update_steps(f"validate-num-equals: {validation_name}")
 
@@ -270,7 +270,7 @@ def validate_num_not_equals():
     validation_pass_msg = num_not_equals_pass_msg_entry.get()
     validation_fail_msg = num_not_equals_fail_msg_entry.get()
     now = int(time.time() * 1000)
-    conn([["validation-num-not-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg]])
+    conn([["validation-num-not-equals", now, validation_name, variable1, variable2, validation_pass_msg, validation_fail_msg, validate_num_not_equals_after_checked, validate_num_not_equals_before_checked]])
     validation_num_not_equals_frame.pack_forget()
     update_steps(f"validate-num-not-equals: {validation_name}")
 
@@ -280,7 +280,7 @@ def variable_value():
     variable_name = variable_value_name_entry.get()
     variable_value = variable_value_entry.get()
     now = int(time.time() * 1000)
-    conn([["variable-value", now, variable_name, variable_value]])
+    conn([["variable-value", now, variable_name, variable_value, variable_value_after_checked, variable_value_before_checked]])
     variable_value_frame.pack_forget()
     update_steps(f"variable-value: {variable_name}")
 

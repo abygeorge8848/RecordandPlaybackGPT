@@ -35,13 +35,31 @@ def reformat_paf_activity(event_queue):
             #getText_variable = name_engine.get_variable_name()
             xpath = event["xpath"]
             variable = event["variable"]
+            after = event["after"]
+            before = event["before"]
             PAF_SCRIPT += f'\t<WaitTillElement xpath="{xpath}" waitcondition="visible"></WaitTillElement>\n'
             #PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
-            PAF_SCRIPT += f'\t<getText xpath="{xpath}" variable="{variable}"></getText>\n'
+            if not after and not before:
+                PAF_SCRIPT += f'\t<getText xpath="{xpath}" variable="{variable}"></getText>\n'
+            elif after and not before:
+                PAF_SCRIPT += f'\t<getText xpath="{xpath}" variable="{variable}" snapshotAfter="true"></getText>\n'
+            elif not after and before:
+                PAF_SCRIPT += f'\t<getText xpath="{xpath}" variable="{variable}" snapshotBefore="true"></getText>\n'
+            else:
+               PAF_SCRIPT += f'\t<getText xpath="{xpath}" variable="{variable}" snapshotAfter="true" snapshotBefore="true"></getText>\n' 
         elif event["event"] == "variable-value":
             variable_name = event["name"]
             variable_value = event["value"]
-            PAF_SCRIPT += f'\t<variable keyName="{variable_name}" value="{variable_value}"></variable>\n'
+            after = event["after"]
+            before = event["before"]
+            if not after and not before:
+                PAF_SCRIPT += f'\t<variable keyName="{variable_name}" value="{variable_value}"></variable>\n'
+            elif after and not before:
+                PAF_SCRIPT += f'\t<variable keyName="{variable_name}" value="{variable_value}" snapshotAfter="true"></variable>\n'
+            elif not after and before:
+                PAF_SCRIPT += f'\t<variable keyName="{variable_name}" value="{variable_value}" snapshotBefore="true"></variable>\n'
+            else:
+               PAF_SCRIPT += f'\t<variable keyName="{variable_name}" value="{variable_value}" snapshotAfter="true" snapshotBefore="true"></variable>\n'
         elif event["event"] in ["validation-exists", "validation-not-exists"]:
             if event["validation_name"] == "Enter validation name(optional)":
                 event["validation_name"] = name_engine.get_validation_name()
@@ -51,10 +69,9 @@ def reformat_paf_activity(event_queue):
                 event["fail_msg"] = "STEP FAILED"  
             validation_name = event["validation_name"]
             xpath = event["xpath"]
-            #instruction = event["instruction"]
-            #passMsg = generate_pass_message(instruction)
+            after = event["after"]
+            before = event["before"]
             passMsg = event["pass_msg"]
-            #failMsg = generate_fail_message(instruction)
             failMsg = event["fail_msg"]
             #PAF_SCRIPT += '\t<wait time="5000"></wait>\n'
             PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
