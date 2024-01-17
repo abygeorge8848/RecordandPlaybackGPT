@@ -43,6 +43,12 @@ def reformat_paf_activity(event_queue):
             variable_value = event["value"]
             PAF_SCRIPT += f'\t<variable keyName="{variable_name}" value="{variable_value}"></variable>\n'
         elif event["event"] in ["validation-exists", "validation-not-exists"]:
+            if event["validation_name"] == "Enter validation name(optional)":
+                event["validation_name"] = name_engine.get_validation_name()
+            if event["pass_msg"] == "Enter pass message(optional)":
+                event["pass_msg"] = "STEP PASSED"
+            if event["fail_msg"] == "Enter fail message(optional)":
+                event["fail_msg"] = "STEP FAILED"  
             validation_name = event["validation_name"]
             xpath = event["xpath"]
             #instruction = event["instruction"]
@@ -59,6 +65,12 @@ def reformat_paf_activity(event_queue):
                 VALIDATION_SCRIPT += f'\t<validate xpath="{xpath}" exists="false" snapshot="true" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'
             VALIDATION_SCRIPT += f'</valGroup>\n'
         elif event["event"] in ["validation-equals", "validation-not-equals", "validation-num-equals", "validation-num-not-equals"]:
+            if event["validation_name"] == "Enter validation name(optional)":
+                event["validation_name"] = name_engine.get_validation_name()
+            if event["pass_msg"] == "Enter pass message(optional)":
+                event["pass_msg"] = "STEP PASSED"
+            if event["fail_msg"] == "Enter fail message(optional)":
+                event["fail_msg"] = "STEP FAILED"    
             validation_name = event["validation_name"]
             variable1 = event["variable1"]
             variable2 = event["variable2"]
