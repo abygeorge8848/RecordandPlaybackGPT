@@ -12,6 +12,12 @@ def reformat_paf_activity(event_queue):
             PAF_SCRIPT += "\t<WaitForPageLoad/>\n"
         elif event["event"] == "end-if":
             PAF_SCRIPT += "\t</if>\n"
+        elif event["event"] == "end-if-then":
+            PAF_SCRIPT += "\t\t</then>\n"
+            PAF_SCRIPT += "\t\t<else>\n"
+        elif event["event"] == "end-else":
+            PAF_SCRIPT += "\t\t</else>\n"
+            PAF_SCRIPT += "\t</if>\n"
         elif event["event"] == "click":
             xpath = event["xpath"]
             PAF_SCRIPT += f'\t<WaitTillElement xpath="{xpath}" waitcondition="click"></WaitTillElement>\n'
@@ -76,9 +82,13 @@ def reformat_paf_activity(event_queue):
             passMsg = event["pass_msg"]
             failMsg = event["fail_msg"]
             if_condition = event["if_condition"]
+            if_else_condition = event["if_else_condition"]
             #PAF_SCRIPT += '\t<wait time="5000"></wait>\n'
-            if not if_condition:
+            if not if_condition and not if_else_condition:
                 PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
+            elif if_else_condition:
+                PAF_SCRIPT += f'\t<if valGroupIds="{validation_name}">\n'
+                PAF_SCRIPT += f'\t<then>\n'
             else:
                 PAF_SCRIPT += f'\t<if valGroupIds="{validation_name}">\n'
             VALIDATION_SCRIPT += f'\n<valGroup groupId="{validation_name}">\n'
@@ -100,7 +110,14 @@ def reformat_paf_activity(event_queue):
             passMsg = event["pass_msg"]
             failMsg = event["fail_msg"]
             if_condition = event["if_condition"]
-            PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
+            if_else_condition = event["if_else_condition"]
+            if not if_condition and not if_else_condition:
+                PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
+            elif if_else_condition:
+                PAF_SCRIPT += f'\t<if valGroupIds="{validation_name}">\n'
+                PAF_SCRIPT += f'\t<then>\n'
+            else:
+                PAF_SCRIPT += f'\t<if valGroupIds="{validation_name}">\n'
             VALIDATION_SCRIPT += f'\n<valGroup groupId="{validation_name}">\n'
             if event["event"] == "validation-equals":
                 VALIDATION_SCRIPT += f'\t<validate variable="{variable1}" condition="equals" value="{variable2}" passMsg="{passMsg}" failMsg="{failMsg}"></validate>\n'

@@ -237,7 +237,8 @@ def stop_and_show_records():
                 after = others[4]
                 before = others[5]
                 if_condition = others[6]
-                event_queue.append({"event": event_type, "validation_name": validation_name, "xpath": xpath, "pass_msg": pass_msg, "fail_msg": fail_msg, "after": after, "before": before, "if_condition": if_condition})
+                if_else_condition = others[7]
+                event_queue.append({"event": event_type, "validation_name": validation_name, "xpath": xpath, "pass_msg": pass_msg, "fail_msg": fail_msg, "after": after, "before": before, "if_condition": if_condition, "if_else_condition": if_else_condition})
                 prev_event_was_input = False 
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
@@ -255,7 +256,7 @@ def stop_and_show_records():
                 after = others[5]
                 before = others[6]
                 if_condition = others[7]
-                event_queue.append({"event": event_type, "validation_name": validation_name, "variable1": variable1, "variable2": variable2, "pass_msg": pass_msg, "fail_msg": fail_msg, "after": after, "before": before, "if_condition": if_condition})
+                event_queue.append({"event": event_type, "validation_name": validation_name, "variable1": variable1, "variable2": variable2, "pass_msg": pass_msg, "fail_msg": fail_msg, "after": after, "before": before, "if_condition": if_condition, "if_else_condition": if_else_condition})
                 prev_event_was_input = False 
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
@@ -294,7 +295,7 @@ def stop_and_show_records():
                 event_queue.append({"event": "WaitForPageLoad"})
                 prev_event_was_wait = False
             
-            elif event_type == "end-if":
+            elif event_type == "end-if" or event_type == "end-if-then" or event_type == "end-else":
                 if combined_input:
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None

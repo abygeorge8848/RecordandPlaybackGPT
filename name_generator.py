@@ -19,4 +19,4 @@ class NameGenerator:
     
     def get_validation_name(self):
         self.validation_counter += 1
-        return f"variable_{self.validation_counter}"
+        return f"validation_{self.validation_counter}"
