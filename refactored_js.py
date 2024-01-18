@@ -3,6 +3,7 @@ if (!window.hasInjected) {
     window.recordedEvents = [];
     window.hasInjected = true;
     window.isPaused = false;
+    window.frameDetected = false;
 
     console.log("Listeners have been set up");
     function sendEventsToServerSync() {
@@ -31,14 +32,34 @@ if (!window.hasInjected) {
     var clickTimer;
     var doubleClickFlag = false;
 
+    function getFrameId() {
+        if (window.frameElement) {
+            return window.frameElement.id || 'unknownFrame';
+        } else {
+            return null; // Not within a frame
+        }
+    }
+
     document.addEventListener('dblclick', function(e) {
         console.log("Double Click ...");
         if (window.isPaused) return;
         doubleClickFlag = true;
         clearTimeout(clickTimer);
         var xpath = computeXPath(e.target);
+        var frameId = getFrameId();
+        if (frameId !== null && !window.frameDetected){
+            window.frameDetected = true;
+            window.recordedEvents.push(['frame', Date.now(), frameId]);
+            sendEventsToServerSync();
+        }
+        else if (frameId === null && window.frameDetected){
+            window.frameDetected = false;
+            window.recordedEvents.push(['frame', Date.now(), 'parent']);
+            sendEventsToServerSync();
+        }
         window.recordedEvents.push(['dblClick', Date.now(), xpath]);
         sendEventsToServerSync();
+        doubleClickFlag = false;
     });
 
     document.addEventListener('click', function(e) {
@@ -49,6 +70,17 @@ if (!window.hasInjected) {
                 if (!doubleClickFlag) {
                     console.log("You clicked right now ...");
                     var xpath = computeXPath(e.target);
+                    var frameId = getFrameId();
+                    if (frameId !== null && !window.frameDetected){
+                        window.frameDetected = true;
+                        window.recordedEvents.push(['frame', Date.now(), frameId]);
+                        sendEventsToServerSync();
+                    }
+                    else if (frameId === null && window.frameDetected){
+                        window.frameDetected = false;
+                        window.recordedEvents.push(['frame', Date.now(), 'parent']);
+                        sendEventsToServerSync();
+                    }
                     window.recordedEvents.push(['click', Date.now(), xpath]);
                     sendEventsToServerSync();
                 }
@@ -61,12 +93,34 @@ if (!window.hasInjected) {
     document.addEventListener('keypress', function(e) {
         if (window.isPaused) return;
         var xpath = computeXPath(e.target);
+        var frameId = getFrameId();
+        if (frameId !== null && !window.frameDetected){
+            window.frameDetected = true;
+            window.recordedEvents.push(['frame', Date.now(), frameId]);
+            sendEventsToServerSync();
+        }
+        else if (frameId === null && window.frameDetected){
+            window.frameDetected = false;
+            window.recordedEvents.push(['frame', Date.now(), 'parent']);
+            sendEventsToServerSync();
+        }
         window.recordedEvents.push(['input', Date.now(), xpath, e.key]);
         sendEventsToServerSync();  
     });
 
     function recordPageLoadEvent() {
         if (window.recordedEvents.length === 0 || window.recordedEvents[window.recordedEvents.length - 1][0] !== 'WaitForPageLoad') {
+            var frameId = getFrameId();
+            if (frameId !== null && !window.frameDetected){
+                window.frameDetected = true;
+                window.recordedEvents.push(['frame', Date.now(), frameId]);
+                sendEventsToServerSync();
+            }
+            else if (frameId === null && window.frameDetected){
+                window.frameDetected = false;
+                window.recordedEvents.push(['frame', Date.now(), 'parent']);
+                sendEventsToServerSync();
+            }
             window.recordedEvents.push(['WaitForPageLoad', Date.now()]);
             sendEventsToServerSync();  
         }
@@ -75,6 +129,17 @@ if (!window.hasInjected) {
     document.addEventListener('scroll', function(e) {
         if (window.isPaused) return;
         var xpath = computeXPathOfElementAt20Percent()
+        var frameId = getFrameId();
+        if (frameId !== null && !window.frameDetected){
+            window.frameDetected = true;
+            window.recordedEvents.push(['frame', Date.now(), frameId]);
+            sendEventsToServerSync();
+        }
+        else if (frameId === null && window.frameDetected){
+            window.frameDetected = false;
+            window.recordedEvents.push(['frame', Date.now(), 'parent']);
+            sendEventsToServerSync();
+        }
         window.recordedEvents.push(['scroll', Date.now(), xpath]);
         sendEventsToServerSync();  
     });
@@ -228,11 +293,54 @@ if (!window.hasInjected) {
 
 xpath_js = """
             var callback = arguments[arguments.length - 1];  // The callback function provided by Selenium
+            window.frameDetected = false;
+
+            function sendEventsToServerSync() {
+                console.log("Sending the respective event to the server");
+                if (window.isSending || window.recordedEvents.length === 0) {
+                    return; // Do not send if a send operation is in progress or if there are no events to send
+                }
+                window.isSending = true;
+
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", 'http://localhost:9005/save', true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState == 4) {
+                        if (xhr.status == 200) {
+                            console.log('Event data sent successfully');
+                        }
+                        window.isSending = false;
+                        window.recordedEvents = []; // Clear the recorded events after sending
+                    }
+                };
+
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.send(JSON.stringify(window.recordedEvents));
+            }
+
+            function getFrameId() {
+                if (window.frameElement) {
+                    return window.frameElement.id || 'unknownFrame';
+                } else {
+                    return null; // Not within a frame
+                }
+            }   
 
             document.addEventListener('click', function getTextEvent(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 var xpath = computeXPath(e.target);
+                var frameId = getFrameId();
+                if (frameId !== null && !window.frameDetected){
+                    window.frameDetected = true;
+                    window.recordedEvents.push(['frame', Date.now(), frameId]);
+                    sendEventsToServerSync();
+                }
+                else if (frameId === null && window.frameDetected){
+                    window.frameDetected = false;
+                    window.recordedEvents.push(['frame', Date.now(), 'parent']);
+                    sendEventsToServerSync();
+                }
                 console.log(xpath);
                 callback(xpath);  // Call the callback with the XPath as the argument
             });

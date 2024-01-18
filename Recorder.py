@@ -58,6 +58,17 @@ def set_up_listeners():
     result = driver.execute_script(js_script)
     print("The script has been injected successfully!")
 
+    # Check if there are any frames and inject the script into them
+    frame_elements = driver.find_elements(By.TAG_NAME, 'frame') + driver.find_elements(By.TAG_NAME, 'iframe')
+    for frame_element in frame_elements:
+        try:
+            driver.switch_to.frame(frame_element)
+            set_up_listeners(driver)
+        except Exception as e:
+            print(f"Exception while switching to frame: {e}")
+        finally:
+            driver.switch_to.default_content()
+
 
 def monitor_page_load(stop_thread_flag):
     global driver
@@ -275,7 +286,7 @@ def stop_and_show_records():
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
 
-            elif event_type == "loop" or event_type == "if-condition" or event_type == "validation-equals" or event_type == "validation-starts-with" or event_type == "validation-ends-with" or event_type == "variable-expression" or event_type == "validation-num-le" or event_type == "validation-num-ge" or event_type == "validation-contains":
+            elif event_type == "loop" or event_type == "validation-starts-with" or event_type == "validation-ends-with" or event_type == "variable-expression" or event_type == "validation-num-le" or event_type == "validation-num-ge" or event_type == "validation-contains":
                 instruction = others[1]
                 if combined_input:
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
@@ -301,6 +312,17 @@ def stop_and_show_records():
                     combined_input = None
                     combined_xpath = None
                 event_queue.append({"event": event_type})
+                prev_event_was_input = False 
+                prev_event_was_wait = False
+                prev_event_was_waitforpageload == False
+            
+            if event_type == "frame":
+                if combined_input:
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
+                    combined_input = None
+                    combined_xpath = None
+                id = others[0]
+                event_queue.append({"event": event_type, "id": id})
                 prev_event_was_input = False 
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False

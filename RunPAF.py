@@ -31,8 +31,6 @@ def run_file():
     return 1
 
 
-
-
 def report_open():
     # List all files in the directory
     files = glob.glob(os.path.join("C:/Users/u1138322/PAF/ProjectContainer/SampleProject/report/summary_report", '*.html'))

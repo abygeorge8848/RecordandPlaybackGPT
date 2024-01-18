@@ -23,6 +23,9 @@ def reformat_paf_activity(event_queue):
             PAF_SCRIPT += f'\t<WaitTillElement xpath="{xpath}" waitcondition="click"></WaitTillElement>\n'
             #PAF_SCRIPT += '\t<wait time="3000"></wait>\n'
             PAF_SCRIPT += f'\t<script xpath="{xpath}" clickElement="true"></script>\n'
+        elif event["event"] == "frame":
+            id = event["id"]
+            PAF_SCRIPT += f'\t<frame id="{id}"></frame>\n'
         elif event["event"] == "input":
             xpath = event["xpath"]
             value = event["value"]
@@ -115,7 +118,7 @@ def reformat_paf_activity(event_queue):
                 PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
             elif if_else_condition:
                 PAF_SCRIPT += f'\t<if valGroupIds="{validation_name}">\n'
-                PAF_SCRIPT += f'\t<then>\n'
+                PAF_SCRIPT += f'\t\t<then>\n'
             else:
                 PAF_SCRIPT += f'\t<if valGroupIds="{validation_name}">\n'
             VALIDATION_SCRIPT += f'\n<valGroup groupId="{validation_name}">\n'
