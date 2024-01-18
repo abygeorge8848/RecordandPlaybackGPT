@@ -8,7 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 import time
 import math
 import json
@@ -51,23 +51,68 @@ actions = ActionChains(driver)
 
 
 
-# Set up listeners
 def set_up_listeners():
-    # Injecting JS to add click and input event listeners
-    js_script = listeners
-    result = driver.execute_script(js_script)
-    print("The script has been injected successfully!")
+    # Injecting JS into the main page
+    inject_script_into_page()
+    # Handle frame injection
+    inject_script_into_frames()
 
-    # Check if there are any frames and inject the script into them
-    frame_elements = driver.find_elements(By.TAG_NAME, 'frame') + driver.find_elements(By.TAG_NAME, 'iframe')
-    for frame_element in frame_elements:
+
+def inject_script_into_frames(is_nested=False):
+    original_window = driver.current_window_handle
+
+    frames = driver.find_elements(By.TAG_NAME, 'iframe') + driver.find_elements(By.TAG_NAME, 'frame')
+    if frames:
+        if not is_nested:
+            time.sleep(5)  # Adjust this delay as needed
+
+        for index, frame in enumerate(frames):
+            retry_frame_injection(frame, index, is_nested)
+
+    elif not is_nested:
+        print("No iframes found on this page.")
+
+    driver.switch_to.window(original_window)
+
+
+def retry_frame_injection(frame, index, is_nested, attempts=3):
+    for attempt in range(attempts):
         try:
-            driver.switch_to.frame(frame_element)
-            set_up_listeners(driver)
+            driver.switch_to.frame(frame)
+            WebDriverWait(driver, 10).until(lambda d: d.execute_script("return document.readyState;") == "complete")
+            retry_script_injection(3)
+            if not is_nested:
+                inject_script_into_frames(is_nested=True)
+            break  # Exit the loop if successful
+        except StaleElementReferenceException:
+            print(f"Stale element reference for frame at index {index}, attempt {attempt + 1}")
+            if attempt == attempts - 1:
+                raise  # Re-raise exception if all attempts fail
+        except TimeoutException:
+            print(f"Timeout waiting for frame to load at index {index}, attempt {attempt + 1}")
         except Exception as e:
-            print(f"Exception while switching to frame: {e}")
+            print(f"Exception while injecting script into frame at index {index}, attempt {attempt + 1}: {e}")
         finally:
             driver.switch_to.default_content()
+
+
+
+def retry_script_injection(attempts):
+    for attempt in range(attempts):
+        try:
+            inject_script_into_page()
+            return
+        except Exception as e:
+            print(f"Attempt {attempt + 1} failed for script injection: {e}")
+            time.sleep(1)  # Adjust the sleep time as necessary
+
+
+def inject_script_into_page():
+    try:
+        driver.execute_script(listeners)
+        print("Script injected successfully into current context.")
+    except Exception as e:
+        print(f"Error injecting script into current context: {e}")
 
 
 def monitor_page_load(stop_thread_flag):
@@ -75,20 +120,17 @@ def monitor_page_load(stop_thread_flag):
     old_url = driver.current_url
     while not stop_thread_flag.is_set():
         try:
-            time.sleep(0.01)
-            if driver:
-                new_url = driver.current_url
-                if new_url != old_url:
-                    print(f"URL : '{old_url}' has been changed to '{new_url}'")
-                    print("URL change detected. Preparing to backup data ...")
-                    #server_response = backup_events_to_server()
-                    print("Page has navigated. Reinjecting scripts...")
-                    WebDriverWait(driver, 240).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-                    set_up_listeners()
-                    old_url = new_url
+            time.sleep(0.5) # Adjust the sleep time as necessary
+            new_url = driver.current_url
+            if new_url != old_url:
+                print(f"URL change detected. Old URL: '{old_url}', New URL: '{new_url}'")
+                WebDriverWait(driver, 240).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+                set_up_listeners()
+                old_url = new_url
         except Exception as e:
-            print("Exception in monitor_page_load: ", e)
+            print(f"Exception in monitor_page_load: {e}")
             break
+
 
 
 stop_thread_flag = threading.Event()
@@ -335,7 +377,7 @@ def stop_and_show_records():
             event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
 
         stop_thread_flag.set()
-        driver.quit()
+        #driver.quit()
 
 
         def process_wait_in_queue(event_queue):

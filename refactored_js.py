@@ -32,11 +32,18 @@ if (!window.hasInjected) {
     var clickTimer;
     var doubleClickFlag = false;
 
-    function getFrameId() {
-        if (window.frameElement) {
-            return window.frameElement.id || 'unknownFrame';
+    function getFrameInfo(element) {
+        var frameElement = element.closest('frame, iframe');
+        if (frameElement !== null) {
+            return {
+                isInFrame: frameElement.contentWindow === window,
+                frameId: frameElement.id || 'unknownFrame'
+            };
         } else {
-            return null; // Not within a frame
+            return {
+                isInFrame: false,
+                frameId: null
+            };
         }
     }
 
@@ -46,13 +53,12 @@ if (!window.hasInjected) {
         doubleClickFlag = true;
         clearTimeout(clickTimer);
         var xpath = computeXPath(e.target);
-        var frameId = getFrameId();
-        if (frameId !== null && !window.frameDetected){
+        var frameInfo = getFrameInfo(e.target);
+        if (frameInfo.frameId !== null && !window.frameDetected){
             window.frameDetected = true;
-            window.recordedEvents.push(['frame', Date.now(), frameId]);
+            window.recordedEvents.push(['frame', Date.now(), frameInfo.frameId]);
             sendEventsToServerSync();
-        }
-        else if (frameId === null && window.frameDetected){
+        } else if (frameInfo.frameId === null && window.frameDetected){
             window.frameDetected = false;
             window.recordedEvents.push(['frame', Date.now(), 'parent']);
             sendEventsToServerSync();
@@ -70,14 +76,17 @@ if (!window.hasInjected) {
                 if (!doubleClickFlag) {
                     console.log("You clicked right now ...");
                     var xpath = computeXPath(e.target);
-                    var frameId = getFrameId();
-                    if (frameId !== null && !window.frameDetected){
+                    var frameInfo = getFrameInfo(e.target);
+                    console.log(frameInfo);
+                    if (frameInfo.frameId !== null && !window.frameDetected){
                         window.frameDetected = true;
-                        window.recordedEvents.push(['frame', Date.now(), frameId]);
+                        console.log('Detected a frame for clicked element');
+                        console.log(frameInfo.frameId);
+                        window.recordedEvents.push(['frame', Date.now(), frameInfo.frameId]);
                         sendEventsToServerSync();
-                    }
-                    else if (frameId === null && window.frameDetected){
+                    } else if (frameInfo.frameId === null && window.frameDetected){
                         window.frameDetected = false;
+                        console.log('You have now left the frame to the parent body');
                         window.recordedEvents.push(['frame', Date.now(), 'parent']);
                         sendEventsToServerSync();
                     }
@@ -93,13 +102,12 @@ if (!window.hasInjected) {
     document.addEventListener('keypress', function(e) {
         if (window.isPaused) return;
         var xpath = computeXPath(e.target);
-        var frameId = getFrameId();
-        if (frameId !== null && !window.frameDetected){
+        var frameInfo = getFrameInfo(e.target);
+        if (frameInfo.frameId !== null && !window.frameDetected){
             window.frameDetected = true;
-            window.recordedEvents.push(['frame', Date.now(), frameId]);
+            window.recordedEvents.push(['frame', Date.now(), frameInfo.frameId]);
             sendEventsToServerSync();
-        }
-        else if (frameId === null && window.frameDetected){
+        } else if (frameInfo.frameId === null && window.frameDetected){
             window.frameDetected = false;
             window.recordedEvents.push(['frame', Date.now(), 'parent']);
             sendEventsToServerSync();
@@ -110,17 +118,6 @@ if (!window.hasInjected) {
 
     function recordPageLoadEvent() {
         if (window.recordedEvents.length === 0 || window.recordedEvents[window.recordedEvents.length - 1][0] !== 'WaitForPageLoad') {
-            var frameId = getFrameId();
-            if (frameId !== null && !window.frameDetected){
-                window.frameDetected = true;
-                window.recordedEvents.push(['frame', Date.now(), frameId]);
-                sendEventsToServerSync();
-            }
-            else if (frameId === null && window.frameDetected){
-                window.frameDetected = false;
-                window.recordedEvents.push(['frame', Date.now(), 'parent']);
-                sendEventsToServerSync();
-            }
             window.recordedEvents.push(['WaitForPageLoad', Date.now()]);
             sendEventsToServerSync();  
         }
@@ -129,13 +126,12 @@ if (!window.hasInjected) {
     document.addEventListener('scroll', function(e) {
         if (window.isPaused) return;
         var xpath = computeXPathOfElementAt20Percent()
-        var frameId = getFrameId();
-        if (frameId !== null && !window.frameDetected){
+        var frameInfo = getFrameInfo(e.target);
+        if (frameInfo.frameId !== null && !window.frameDetected){
             window.frameDetected = true;
-            window.recordedEvents.push(['frame', Date.now(), frameId]);
+            window.recordedEvents.push(['frame', Date.now(), frameInfo.frameId]);
             sendEventsToServerSync();
-        }
-        else if (frameId === null && window.frameDetected){
+        } else if (frameInfo.frameId === null && window.frameDetected){
             window.frameDetected = false;
             window.recordedEvents.push(['frame', Date.now(), 'parent']);
             sendEventsToServerSync();
@@ -318,25 +314,31 @@ xpath_js = """
                 xhr.send(JSON.stringify(window.recordedEvents));
             }
 
-            function getFrameId() {
-                if (window.frameElement) {
-                    return window.frameElement.id || 'unknownFrame';
+            function getFrameInfo(element) {
+                var frameElement = element.closest('frame, iframe');
+                if (frameElement !== null) {
+                    return {
+                        isInFrame: frameElement.contentWindow === window,
+                        frameId: frameElement.id || 'unknownFrame'
+                    };
                 } else {
-                    return null; // Not within a frame
+                    return {
+                        isInFrame: false,
+                        frameId: null
+                    };
                 }
-            }   
+            } 
 
             document.addEventListener('click', function getTextEvent(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 var xpath = computeXPath(e.target);
-                var frameId = getFrameId();
-                if (frameId !== null && !window.frameDetected){
+                var frameInfo = getFrameInfo(e.target);
+                if (frameInfo.frameId !== null && !window.frameDetected){
                     window.frameDetected = true;
-                    window.recordedEvents.push(['frame', Date.now(), frameId]);
+                    window.recordedEvents.push(['frame', Date.now(), frameInfo.frameId]);
                     sendEventsToServerSync();
-                }
-                else if (frameId === null && window.frameDetected){
+                } else if (frameInfo.frameId === null && window.frameDetected){
                     window.frameDetected = false;
                     window.recordedEvents.push(['frame', Date.now(), 'parent']);
                     sendEventsToServerSync();
