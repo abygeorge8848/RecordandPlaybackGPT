@@ -3,7 +3,6 @@ if (!window.hasInjected) {
     window.recordedEvents = [];
     window.hasInjected = true;
     window.isPaused = false;
-    window.frameDetected = false;
 
     console.log("Listeners have been set up");
     function sendEventsToServerSync() {
@@ -32,20 +31,38 @@ if (!window.hasInjected) {
     var clickTimer;
     var doubleClickFlag = false;
 
-    function getFrameInfo(element) {
-        var frameElement = element.closest('frame, iframe');
-        if (frameElement !== null) {
+    function getFrameInfo() {
+        if (window !== window.top) {
+            // Inside a frame
             return {
-                isInFrame: frameElement.contentWindow === window,
-                frameId: frameElement.id || 'unknownFrame'
+                isInFrame: true,
+                frameId: window.frameElement ? window.frameElement.id : 'unknownFrame'
             };
         } else {
+            // Not inside a frame
             return {
                 isInFrame: false,
                 frameId: null
             };
         }
     }
+
+    function isInIframe() {
+        return window !== window.top;
+    }
+
+    // Function to update frameDetected in localStorage
+    function setFrameDetected(value) {
+        localStorage.setItem('frameDetected', value.toString());
+    }
+
+    // Function to get frameDetected from localStorage
+    function getFrameDetected() {
+        return localStorage.getItem('frameDetected') === 'true';
+    }
+
+    window.frameDetected = getFrameDetected();
+
 
     document.addEventListener('dblclick', function(e) {
         console.log("Double Click ...");
@@ -78,15 +95,19 @@ if (!window.hasInjected) {
                     var xpath = computeXPath(e.target);
                     var frameInfo = getFrameInfo(e.target);
                     console.log(frameInfo);
-                    if (frameInfo.frameId !== null && !window.frameDetected){
+                    var currentFrameDetected = getFrameDetected(); // Get the current state from localStorage
+                    console.log(currentFrameDetected);
+                    if (frameInfo.frameId !== null && !currentFrameDetected){
                         window.frameDetected = true;
                         console.log('Detected a frame for clicked element');
                         console.log(frameInfo.frameId);
+                        setFrameDetected(true);
                         window.recordedEvents.push(['frame', Date.now(), frameInfo.frameId]);
                         sendEventsToServerSync();
-                    } else if (frameInfo.frameId === null && window.frameDetected){
+                    } else if (frameInfo.frameId === null && currentFrameDetected){
                         window.frameDetected = false;
                         console.log('You have now left the frame to the parent body');
+                        setFrameDetected(false);
                         window.recordedEvents.push(['frame', Date.now(), 'parent']);
                         sendEventsToServerSync();
                     }
@@ -314,20 +335,22 @@ xpath_js = """
                 xhr.send(JSON.stringify(window.recordedEvents));
             }
 
-            function getFrameInfo(element) {
-                var frameElement = element.closest('frame, iframe');
-                if (frameElement !== null) {
+            function getFrameInfo() {
+                if (window !== window.top) {
+                    // Inside a frame
                     return {
-                        isInFrame: frameElement.contentWindow === window,
-                        frameId: frameElement.id || 'unknownFrame'
+                        isInFrame: true,
+                        frameId: window.frameElement ? window.frameElement.id : 'unknownFrame'
                     };
                 } else {
+                    // Not inside a frame
                     return {
                         isInFrame: false,
                         frameId: null
                     };
                 }
-            } 
+            }
+
 
             document.addEventListener('click', function getTextEvent(e) {
                 e.preventDefault();
