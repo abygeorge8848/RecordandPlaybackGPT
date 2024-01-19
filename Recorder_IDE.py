@@ -78,6 +78,17 @@ def end_else():
     update_steps(f"End else condition segment")
     end_else_button.pack_forget()
 
+def end_loop_create(counterVar):
+    end_loop_button = tk.Button(nav_bar, text=f"End loop - {counterVar}", command=end_loop)
+    end_loop_button.pack(side=tk.LEFT, padx=5)
+
+    def end_loop():
+        now = int(time.time() * 1000)
+        conn([["end-loop", now]])
+        update_steps(f"End loop - {counterVar}")
+        end_loop_button.pack_forget()
+
+
 def enable_dropdown_options():
     dropdown.configure(state='readonly')
 
@@ -118,6 +129,7 @@ def handle_validation_option(selected_validation):
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
+            loop_frame.pack_forget()
         elif selected_validation == "not-exists":
             validation_not_exists_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -127,6 +139,7 @@ def handle_validation_option(selected_validation):
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
+            loop_frame.pack_forget()
         elif selected_validation == "equals":
             validation_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -136,6 +149,7 @@ def handle_validation_option(selected_validation):
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
+            loop_frame.pack_forget()
         elif selected_validation == "not-equals":
             validation_not_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -145,6 +159,7 @@ def handle_validation_option(selected_validation):
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
+            loop_frame.pack_forget()
         elif selected_validation == "num-equals":
             validation_num_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -154,6 +169,7 @@ def handle_validation_option(selected_validation):
             validation_not_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
+            loop_frame.pack_forget()
         elif selected_validation == "num-not-equals":
             validation_num_not_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -163,6 +179,7 @@ def handle_validation_option(selected_validation):
             validation_not_equals_frame.pack_forget()
             validation_num_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
+            loop_frame.pack_forget()
         else:
             variable_value_frame.pack_forget()
             get_text_frame.pack_forget()
@@ -172,6 +189,7 @@ def handle_validation_option(selected_validation):
             validation_not_equals_frame.pack_forget()
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
+            loop_frame.pack_forget()
     
 
 def handle_dropdown_selection(event):
@@ -186,6 +204,7 @@ def handle_dropdown_selection(event):
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
+            loop_frame.pack_forget()
         elif selected == "variable-value":
             variable_value_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             validation_num_not_equals_frame.pack_forget()
@@ -195,6 +214,18 @@ def handle_dropdown_selection(event):
             validation_equals_frame.pack_forget()
             validation_not_equals_frame.pack_forget()
             validation_num_equals_frame.pack_forget()
+            loop_frame.pack_forget()
+        elif selected == "variable-value":
+            loop_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
+            variable_value_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
+            validation_num_not_equals_frame.pack_forget()
+            get_text_frame.pack_forget()
+            validation_exists_frame.pack_forget()
+            validation_not_exists_frame.pack_forget()
+            validation_equals_frame.pack_forget()
+            validation_not_equals_frame.pack_forget()
+            validation_num_equals_frame.pack_forget()
+            variable_value_frame.pack_forget()
         else:
             variable_value_frame.pack_forget()
             get_text_frame.pack_forget()
@@ -390,6 +421,24 @@ def variable_value():
     variable_value_frame.pack_forget()
     update_steps(f"variable-value: {variable_name}")
 
+def start_loop():
+    startIndex = start_index_entry.get()
+    if startIndex == "Enter start index(optional - default to 1)" or not startIndex:
+        startIndex = 1
+    lastIndex = last_index_entry.get()
+    increment = increment_entry.get()
+    if increment == "Enter increment(optional - deafult to 1)" or not increment:
+        increment = 1
+    counterVar = counterVar_entry.get()
+    if counterVar == "Assign counter(optional - default to i)" or not counterVar:
+        counterVar = "i"
+    now = int(time.time() * 1000)
+    conn([["start-loop", now, startIndex, lastIndex, increment, counterVar]])
+    loop_frame.pack_forget()
+    end_loop_create(counterVar)
+    update_steps(f"start-loop: Counter var -{counterVar}")
+
+
 def update_steps(step):
     executed_steps.insert(tk.END, step)
     executed_steps.see(tk.END)
@@ -416,6 +465,7 @@ pause_resume_button = tk.Button(nav_bar, text="Pause", command=pause_recording)
 end_if_button = tk.Button(nav_bar, text="End if segment", command=end_if)
 end_if_then_button = tk.Button(nav_bar, text="End if then segment", command=end_if_then)
 end_else_button = tk.Button(nav_bar, text="End else segment", command=end_else)
+end_loop_button = tk.Button(nav_bar, text="End loop", command=end_loop_create.end_loop())
 
 start_button.pack(side=tk.LEFT, padx=5)
 
@@ -425,7 +475,7 @@ sidebar.pack(side=tk.RIGHT, fill=tk.Y, padx=10, pady=10)
 
 dropdown_var = tk.StringVar()
 dropdown = ttk.Combobox(sidebar, textvariable=dropdown_var, state="readonly")
-dropdown['values'] = ["getText", "variable-value", "validation", "if-condition", "if-else-condition"]
+dropdown['values'] = ["getText", "variable-value", "validation", "if-condition", "if-else-condition", "loop"]
 dropdown.bind("<<ComboboxSelected>>", handle_dropdown_selection)
 dropdown.pack(fill=tk.X)
 
@@ -659,6 +709,25 @@ variable_value_before_check.pack(side=tk.LEFT, padx=5)
 variable_value_snapshot_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
 validate_button = tk.Button(variable_value_frame, text="Stash", command=variable_value)
 validate_button.pack(side=tk.TOP, pady=8)
+
+
+loop_frame = tk.Frame(sidebar)
+title_label = tk.Label(loop_frame, text='Loop')
+title_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+start_index_entry = tk.Entry(loop_frame)
+start_index_entry.insert(0, 'Enter start index(optional - default to 1)')
+start_index_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+last_index_entry = tk.Entry(loop_frame)
+last_index_entry.insert(0, 'Enter last index')
+last_index_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+increment_entry = tk.Entry(loop_frame)
+increment_entry.insert(0, 'Enter increment(optional - deafult to 1)')
+increment_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+counterVar_entry = tk.Entry(loop_frame)
+counterVar_entry.insert(0, 'Assign counter(optional - default to i)')
+counterVar_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+start_loop_button = tk.Button(loop_frame, text="Start loop", command=start_loop)
+start_loop_button.pack(side=tk.TOP, pady=8)
 
 
 # Left Main Area
