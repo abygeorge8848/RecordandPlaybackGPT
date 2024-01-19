@@ -10,6 +10,14 @@ def reformat_paf_activity(event_queue):
     for event in event_queue:
         if event["event"] == "WaitForPageLoad":
             PAF_SCRIPT += "\t<WaitForPageLoad/>\n"
+        elif event["event"] == "end-loop":
+            PAF_SCRIPT += "\t</loop>\n"
+        elif event["event"] == "start-loop":
+            startIndex = event["startIndex"]
+            lastIndex = event["lastIndex"]
+            increment = event["increment"]
+            counterVar = event["counterVar"]
+            PAF_SCRIPT += f'\t<loop startIndex="{startIndex}" lastIndex="{lastIndex}" increment="{increment}" counterVar="{counterVar}">\n'
         elif event["event"] == "end-if":
             PAF_SCRIPT += "\t</if>\n"
         elif event["event"] == "end-if-then":

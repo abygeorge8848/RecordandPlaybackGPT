@@ -88,6 +88,9 @@ def end_loop_create(counterVar):
         update_steps(f"End loop - {counterVar}")
         end_loop_button.pack_forget()
 
+def end_loop_placeholder():
+    pass
+
 
 def enable_dropdown_options():
     dropdown.configure(state='readonly')
@@ -215,7 +218,7 @@ def handle_dropdown_selection(event):
             validation_not_equals_frame.pack_forget()
             validation_num_equals_frame.pack_forget()
             loop_frame.pack_forget()
-        elif selected == "variable-value":
+        elif selected == "loop":
             loop_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             variable_value_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             validation_num_not_equals_frame.pack_forget()
@@ -465,7 +468,7 @@ pause_resume_button = tk.Button(nav_bar, text="Pause", command=pause_recording)
 end_if_button = tk.Button(nav_bar, text="End if segment", command=end_if)
 end_if_then_button = tk.Button(nav_bar, text="End if then segment", command=end_if_then)
 end_else_button = tk.Button(nav_bar, text="End else segment", command=end_else)
-end_loop_button = tk.Button(nav_bar, text="End loop", command=end_loop_create.end_loop())
+end_loop_button = tk.Button(nav_bar, text="End loop", command=end_loop_placeholder)
 
 start_button.pack(side=tk.LEFT, padx=5)
 

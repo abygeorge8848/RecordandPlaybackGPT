@@ -328,7 +328,7 @@ def stop_and_show_records():
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
 
-            elif event_type == "loop" or event_type == "validation-starts-with" or event_type == "validation-ends-with" or event_type == "variable-expression" or event_type == "validation-num-le" or event_type == "validation-num-ge" or event_type == "validation-contains":
+            elif event_type == "validation-starts-with" or event_type == "validation-ends-with" or event_type == "variable-expression" or event_type == "validation-num-le" or event_type == "validation-num-ge" or event_type == "validation-contains":
                 instruction = others[1]
                 if combined_input:
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
@@ -365,6 +365,30 @@ def stop_and_show_records():
                     combined_xpath = None
                 id = others[0]
                 event_queue.append({"event": event_type, "id": id})
+                prev_event_was_input = False 
+                prev_event_was_wait = False
+                prev_event_was_waitforpageload == False
+            
+            if event_type == "start-loop":
+                if combined_input:
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
+                    combined_input = None
+                    combined_xpath = None
+                startIndex = others[0]
+                lastIndex = others[1]
+                increment = others[2]
+                counterVar = others[3]
+                event_queue.append({"event": event_type, "startIndex": startIndex, "lastIndex": lastIndex, "increment": increment, "counterVar": counterVar})
+                prev_event_was_input = False 
+                prev_event_was_wait = False
+                prev_event_was_waitforpageload == False
+
+            if event_type == "end-loop":
+                if combined_input:
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
+                    combined_input = None
+                    combined_xpath = None
+                event_queue.append({"event": event_type})
                 prev_event_was_input = False 
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
