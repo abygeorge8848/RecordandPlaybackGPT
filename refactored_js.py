@@ -103,13 +103,13 @@ if (!window.hasInjected) {
                         console.log(frameInfo.frameId);
                         setFrameDetected(true);
                         window.recordedEvents.push(['frame', Date.now(), frameInfo.frameId]);
-                        sendEventsToServerSync();
+                        //sendEventsToServerSync();
                     } else if (frameInfo.frameId === null && currentFrameDetected){
                         window.frameDetected = false;
                         console.log('You have now left the frame to the parent body');
                         setFrameDetected(false);
                         window.recordedEvents.push(['frame', Date.now(), 'parent']);
-                        sendEventsToServerSync();
+                        //sendEventsToServerSync();
                     }
                     window.recordedEvents.push(['click', Date.now(), xpath]);
                     sendEventsToServerSync();

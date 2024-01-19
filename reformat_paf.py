@@ -25,6 +25,7 @@ def reformat_paf_activity(event_queue):
             PAF_SCRIPT += f'\t<script xpath="{xpath}" clickElement="true"></script>\n'
         elif event["event"] == "frame":
             id = event["id"]
+            PAF_SCRIPT += f'\t<wait time="5000"></wait>\n'
             PAF_SCRIPT += f'\t<frame id="{id}"></frame>\n'
         elif event["event"] == "input":
             xpath = event["xpath"]
