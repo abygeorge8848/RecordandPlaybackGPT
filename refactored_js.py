@@ -71,14 +71,20 @@ if (!window.hasInjected) {
         clearTimeout(clickTimer);
         var xpath = computeXPath(e.target);
         var frameInfo = getFrameInfo(e.target);
-        if (frameInfo.frameId !== null && !window.frameDetected){
+        console.log(frameInfo);
+        var currentFrameDetected = getFrameDetected(); // Get the current state from localStorage
+        console.log(currentFrameDetected);
+        if (frameInfo.frameId !== null && !currentFrameDetected){
             window.frameDetected = true;
+            console.log('Detected a frame for clicked element');
+            console.log(frameInfo.frameId);
+            setFrameDetected(true);
             window.recordedEvents.push(['frame', Date.now(), frameInfo.frameId]);
-            sendEventsToServerSync();
-        } else if (frameInfo.frameId === null && window.frameDetected){
+        } else if (frameInfo.frameId === null && currentFrameDetected){
             window.frameDetected = false;
+            console.log('You have now left the frame to the parent body');
+            setFrameDetected(false);
             window.recordedEvents.push(['frame', Date.now(), 'parent']);
-            sendEventsToServerSync();
         }
         window.recordedEvents.push(['dblClick', Date.now(), xpath]);
         sendEventsToServerSync();
@@ -103,13 +109,11 @@ if (!window.hasInjected) {
                         console.log(frameInfo.frameId);
                         setFrameDetected(true);
                         window.recordedEvents.push(['frame', Date.now(), frameInfo.frameId]);
-                        //sendEventsToServerSync();
                     } else if (frameInfo.frameId === null && currentFrameDetected){
                         window.frameDetected = false;
                         console.log('You have now left the frame to the parent body');
                         setFrameDetected(false);
                         window.recordedEvents.push(['frame', Date.now(), 'parent']);
-                        //sendEventsToServerSync();
                     }
                     window.recordedEvents.push(['click', Date.now(), xpath]);
                     sendEventsToServerSync();
@@ -124,14 +128,20 @@ if (!window.hasInjected) {
         if (window.isPaused) return;
         var xpath = computeXPath(e.target);
         var frameInfo = getFrameInfo(e.target);
-        if (frameInfo.frameId !== null && !window.frameDetected){
+        console.log(frameInfo);
+        var currentFrameDetected = getFrameDetected(); // Get the current state from localStorage
+        console.log(currentFrameDetected);
+        if (frameInfo.frameId !== null && !currentFrameDetected){
             window.frameDetected = true;
+            console.log('Detected a frame for clicked element');
+            console.log(frameInfo.frameId);
+            setFrameDetected(true);
             window.recordedEvents.push(['frame', Date.now(), frameInfo.frameId]);
-            sendEventsToServerSync();
-        } else if (frameInfo.frameId === null && window.frameDetected){
+        } else if (frameInfo.frameId === null && currentFrameDetected){
             window.frameDetected = false;
+            console.log('You have now left the frame to the parent body');
+            setFrameDetected(false);
             window.recordedEvents.push(['frame', Date.now(), 'parent']);
-            sendEventsToServerSync();
         }
         window.recordedEvents.push(['input', Date.now(), xpath, e.key]);
         sendEventsToServerSync();  
@@ -148,14 +158,20 @@ if (!window.hasInjected) {
         if (window.isPaused) return;
         var xpath = computeXPathOfElementAt20Percent()
         var frameInfo = getFrameInfo(e.target);
-        if (frameInfo.frameId !== null && !window.frameDetected){
+        console.log(frameInfo);
+        var currentFrameDetected = getFrameDetected(); // Get the current state from localStorage
+        console.log(currentFrameDetected);
+        if (frameInfo.frameId !== null && !currentFrameDetected){
             window.frameDetected = true;
+            console.log('Detected a frame for clicked element');
+            console.log(frameInfo.frameId);
+            setFrameDetected(true);
             window.recordedEvents.push(['frame', Date.now(), frameInfo.frameId]);
-            sendEventsToServerSync();
-        } else if (frameInfo.frameId === null && window.frameDetected){
+        } else if (frameInfo.frameId === null && currentFrameDetected){
             window.frameDetected = false;
+            console.log('You have now left the frame to the parent body');
+            setFrameDetected(false);
             window.recordedEvents.push(['frame', Date.now(), 'parent']);
-            sendEventsToServerSync();
         }
         window.recordedEvents.push(['scroll', Date.now(), xpath]);
         sendEventsToServerSync();  
@@ -310,7 +326,6 @@ if (!window.hasInjected) {
 
 xpath_js = """
             var callback = arguments[arguments.length - 1];  // The callback function provided by Selenium
-            window.frameDetected = false;
 
             function sendEventsToServerSync() {
                 console.log("Sending the respective event to the server");
@@ -351,18 +366,42 @@ xpath_js = """
                 }
             }
 
+            function isInIframe() {
+                return window !== window.top;
+            }
+
+            // Function to update frameDetected in localStorage
+            function setFrameDetected(value) {
+                localStorage.setItem('frameDetected', value.toString());
+            }
+
+            // Function to get frameDetected from localStorage
+            function getFrameDetected() {
+                return localStorage.getItem('frameDetected') === 'true';
+            }
+
+            window.frameDetected = getFrameDetected();
+
 
             document.addEventListener('click', function getTextEvent(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 var xpath = computeXPath(e.target);
                 var frameInfo = getFrameInfo(e.target);
-                if (frameInfo.frameId !== null && !window.frameDetected){
+                console.log(frameInfo);
+                var currentFrameDetected = getFrameDetected(); // Get the current state from localStorage
+                console.log(currentFrameDetected);
+                if (frameInfo.frameId !== null && !currentFrameDetected){
                     window.frameDetected = true;
+                    console.log('Detected a frame for clicked element');
+                    console.log(frameInfo.frameId);
+                    setFrameDetected(true);
                     window.recordedEvents.push(['frame', Date.now(), frameInfo.frameId]);
                     sendEventsToServerSync();
-                } else if (frameInfo.frameId === null && window.frameDetected){
+                } else if (frameInfo.frameId === null && currentFrameDetected){
                     window.frameDetected = false;
+                    console.log('You have now left the frame to the parent body');
+                    setFrameDetected(false);
                     window.recordedEvents.push(['frame', Date.now(), 'parent']);
                     sendEventsToServerSync();
                 }
