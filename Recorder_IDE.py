@@ -79,14 +79,17 @@ def end_else():
     end_else_button.pack_forget()
 
 def end_loop_create(counterVar):
-    end_loop_button = tk.Button(nav_bar, text=f"End loop - {counterVar}", command=end_loop)
+    global counterVariable
+    counterVariable = counterVar
+    end_loop_button.config(text=f"End loop - {counterVar}", command=end_loop)
     end_loop_button.pack(side=tk.LEFT, padx=5)
 
-    def end_loop():
-        now = int(time.time() * 1000)
-        conn([["end-loop", now]])
-        update_steps(f"End loop - {counterVar}")
-        end_loop_button.pack_forget()
+
+def end_loop():
+    now = int(time.time() * 1000)
+    conn([["end-loop", now]])
+    update_steps(f"End loop - {counterVariable}")
+    end_loop_button.pack_forget()
 
 def end_loop_placeholder():
     pass
