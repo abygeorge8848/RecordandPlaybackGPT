@@ -16,7 +16,7 @@ import urllib3
 import threading
 from RunPAF import run_file, report_open
 from reformat_paf import reformat_paf_activity, reformat_paf_flow
-from refactored_js import listeners, xpath_js
+from refactored_js import listeners, xpath_js, get_xpath_js
 
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -175,6 +175,14 @@ def resume_recording_main():
 
 def create_xpath():
     xpath = driver.execute_async_script(xpath_js)
+    return xpath
+
+def create_xpath2():
+    xpath = None
+    try:
+        xpath = driver.execute_async_script(get_xpath_js)
+    except:
+        print("No element has been clicked! Click on element to get its xpath")
     return xpath
 
 

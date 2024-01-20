@@ -1,10 +1,10 @@
 import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
-from Recorder import start_recording, stop_and_show_records, create_xpath, pause_recording_main, resume_recording_main
+from tkinter import ttk, messagebox
+from Recorder import start_recording, stop_and_show_records, create_xpath, create_xpath2, pause_recording_main, resume_recording_main
 from RunPAF import run_file, report_open
 from serverConn import conn, delete_last_event
 import time
+from effects import FadingMessage
 
 
 def start_record():
@@ -30,11 +30,13 @@ def stop_recording():
         start_button.pack_forget()
         run_button.pack(side=tk.LEFT, padx=5)
 
+
 def pause_recording():
     pause_recording_main()
     pause_resume_button.config(text="Resume", command=resume_recording)
     dropdown_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
     insert_custom_button.pack(side=tk.RIGHT, padx=5)
+    get_xpath_button.pack(side=tk.RIGHT, padx=5)
     update_steps("Pause Recording")
     enable_dropdown_options()
 
@@ -52,6 +54,9 @@ def resume_recording():
     validation_num_not_equals_frame.pack_forget()
     loop_frame.pack_forget()
     insert_custom_button.pack_forget()
+    insert_custom_frame.pack_forget()
+    get_xpath_button.pack_forget()
+    display_xpath_frame.pack_forget()
     update_steps("Resume Recording")
     disable_dropdown_options()
 
@@ -86,6 +91,16 @@ def insert_custom_step():
     validation_num_not_equals_frame.pack_forget()
     variable_value_frame.pack_forget()
     loop_frame.pack_forget()
+    display_xpath_frame.pack_forget()
+
+def capture_xpath_main():
+    xpath = create_xpath2()
+    if not xpath:
+        messagebox.showwarning("Warning", "You have not clicked on your target element you want the xpath of!")
+        return
+    xpath_label.config(text=xpath)
+    display_xpath_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
+    
 
 def end_if():
     now = int(time.time() * 1000)
@@ -131,6 +146,7 @@ def disable_dropdown_options():
     get_text_frame.pack_forget()
     validation_exists_frame.pack_forget()
     insert_custom_frame.pack_forget()
+    display_xpath_frame.pack_forget()
 
 def show_validation_menu(event):
     # Display the menu if the selected option is "validation"
@@ -166,6 +182,7 @@ def handle_validation_option(selected_validation):
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
             insert_custom_frame.pack_forget()
+            display_xpath_frame.pack_forget()
         elif selected_validation == "not-exists":
             validation_not_exists_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -177,6 +194,7 @@ def handle_validation_option(selected_validation):
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
             insert_custom_frame.pack_forget()
+            display_xpath_frame.pack_forget()
         elif selected_validation == "equals":
             validation_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -188,6 +206,7 @@ def handle_validation_option(selected_validation):
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
             insert_custom_frame.pack_forget()
+            display_xpath_frame.pack_forget()
         elif selected_validation == "not-equals":
             validation_not_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -199,6 +218,7 @@ def handle_validation_option(selected_validation):
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
             insert_custom_frame.pack_forget()
+            display_xpath_frame.pack_forget()
         elif selected_validation == "num-equals":
             validation_num_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -210,6 +230,7 @@ def handle_validation_option(selected_validation):
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
             insert_custom_frame.pack_forget()
+            display_xpath_frame.pack_forget()
         elif selected_validation == "num-not-equals":
             validation_num_not_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -221,6 +242,7 @@ def handle_validation_option(selected_validation):
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
             insert_custom_frame.pack_forget()
+            display_xpath_frame.pack_forget()
         else:
             variable_value_frame.pack_forget()
             get_text_frame.pack_forget()
@@ -232,6 +254,7 @@ def handle_validation_option(selected_validation):
             validation_num_not_equals_frame.pack_forget()
             loop_frame.pack_forget()
             insert_custom_frame.pack_forget()
+            display_xpath_frame.pack_forget()
     
 
 def handle_dropdown_selection(event):
@@ -248,6 +271,7 @@ def handle_dropdown_selection(event):
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
             insert_custom_frame.pack_forget()
+            display_xpath_frame.pack_forget()
         elif selected == "variable-value":
             variable_value_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             validation_num_not_equals_frame.pack_forget()
@@ -259,6 +283,7 @@ def handle_dropdown_selection(event):
             validation_num_equals_frame.pack_forget()
             loop_frame.pack_forget()
             insert_custom_frame.pack_forget()
+            display_xpath_frame.pack_forget()
         elif selected == "loop":
             loop_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             variable_value_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
@@ -271,6 +296,7 @@ def handle_dropdown_selection(event):
             validation_num_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
             insert_custom_frame.pack_forget()
+            display_xpath_frame.pack_forget()
         else:
             variable_value_frame.pack_forget()
             get_text_frame.pack_forget()
@@ -281,6 +307,7 @@ def handle_dropdown_selection(event):
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
             insert_custom_frame.pack_forget()
+            display_xpath_frame.pack_forget()
     else:
         messagebox.showinfo("Alert", "Please pause the recording before entering custom steps.")
 
@@ -492,6 +519,13 @@ def insert_step():
     insert_custom_frame.pack_forget()
 
 
+def copy_to_clipboard(position):
+    root.clipboard_clear()
+    root.clipboard_append(xpath_label.cget("text"))
+    root.update()
+    x, y = position.x_root, position.y_root
+    FadingMessage(root, "Copied to clipboard!", x, y)
+
 
 def update_steps(step):
     executed_steps.insert(tk.END, step)
@@ -536,6 +570,7 @@ open_report_button = tk.Button(nav_bar, text="Open Report", command=report_open)
 stop_button = tk.Button(nav_bar, text="Stop", command=stop_recording)
 delete_button = tk.Button(nav_bar, text="Delete", command=delete_step)
 insert_custom_button = tk.Button(nav_bar, text="Insert", command=insert_custom_step)
+get_xpath_button = tk.Button(nav_bar, text="Get xpath", command=capture_xpath_main)
 pause_resume_button = tk.Button(nav_bar, text="Pause", command=pause_recording)
 end_if_button = tk.Button(nav_bar, text="End if segment", command=end_if)
 end_if_then_button = tk.Button(nav_bar, text="End if then segment", command=end_if_then)
@@ -572,6 +607,17 @@ custom_step_entry.insert(0, 'Enter the custom step')
 custom_step_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 custom_step_button = tk.Button(insert_custom_frame, text="Insert", command=insert_step)
 custom_step_button.pack(side=tk.TOP)
+
+display_xpath_frame = tk.Frame(sidebar)
+title_label = tk.Label(display_xpath_frame, text='Generated xpath :')
+title_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+xpath_label = tk.Label(display_xpath_frame, bg='white', text='', relief='sunken', anchor='w')
+xpath_label.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+copy_button_text = "\U0001F4CB"
+copy_button = tk.Button(display_xpath_frame, text=copy_button_text)
+copy_button.pack(side=tk.LEFT, padx=5)
+copy_button.bind("<Button-1>", copy_to_clipboard)
+
 
 
 get_text_frame = tk.Frame(sidebar)
