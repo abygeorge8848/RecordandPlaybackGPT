@@ -20,3 +20,27 @@ def conn(recorded_events):
     
         except requests.exceptions.RequestException as e:
             print('Error sending request:', e)   
+
+
+
+def delete_last_event():
+    try:
+        response = requests.post('http://localhost:9005/delete-last')
+
+        if response.status_code == 200:
+            print('Last event deleted successfully')
+            deleted_event = response.json().get('deleted_event')
+            if deleted_event:
+                print('Deleted event:', deleted_event)
+                return deleted_event  # Return the deleted event
+            else:
+                print('No event was deleted.')
+                return None
+        else:
+            print('Failed to delete last event: Status code', response.status_code)
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print('Error sending request:', e)
+        return None
+

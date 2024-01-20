@@ -20,6 +20,20 @@ def save_events():
     return jsonify({"status": "success"})
 
 
+@app.route('/delete-last', methods=['POST'])
+def delete_last_event():
+    if events:  # Check if there are events in the list
+        deleted_event = events.pop()  # Remove the last event
+        print(f"\nDeleted event: {deleted_event}\n")
+        # Return the status and the deleted event
+        return jsonify({"status": "success", "deleted_event": deleted_event})
+    else:
+        # If there are no events to delete
+        print("No events to delete")
+        return jsonify({"status": "failure", "message": "No events to delete"})
+
+
+
 @app.route('/retrieve', methods=['GET'])
 def retrieve_events():
     return jsonify(events)

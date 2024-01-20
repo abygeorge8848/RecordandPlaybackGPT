@@ -3,7 +3,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from Recorder import start_recording, stop_and_show_records, create_xpath, pause_recording_main, resume_recording_main
 from RunPAF import run_file, report_open
-from serverConn import conn
+from serverConn import conn, delete_last_event
 import time
 
 
@@ -21,6 +21,7 @@ def stop_recording():
     stop_button.pack_forget()
     pause_resume_button.pack_forget()
     dropdown_frame.pack_forget()
+    delete_button.pack_forget()
     update_steps("Stop Recording")
     disable_dropdown_options()
     response = stop_and_show_records()
@@ -57,6 +58,21 @@ def run_script():
     if file_run:
         run_button.pack_forget()
         open_report_button.pack(side=tk.LEFT, padx=5)
+
+import tkinter as tk
+from tkinter import messagebox
+
+def delete_step():
+    # Show a confirmation dialog
+    user_response = messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete the previous step?")
+    # Check the user's response
+    if user_response:  # If the user clicked 'Yes'
+        deleted_event = delete_last_event()
+        if deleted_event[0] == "end-if" or deleted_event[0] == "end-if-then" or deleted_event[0] == "end-else" or deleted_event[0] == "end-loop" or deleted_event[0] == "loop" or deleted_event[0] == "getText" or deleted_event[0] == "validation-exists" or deleted_event[0] == "validation-not-exists" or deleted_event[0] == "validation-equals" or deleted_event[0] == "validation-not-equals" or deleted_event[0] == "validation-num-equals" or deleted_event[0] == "validation-num-not-equals" or deleted_event[0] == "if-condition" or deleted_event[0] == "if-else-condition" or deleted_event[0] == "variable-value":
+            delete_last_step_from_executed_steps()
+    else:
+        return
+
 
 
 def end_if():
@@ -449,6 +465,11 @@ def update_steps(step):
     executed_steps.insert(tk.END, step)
     executed_steps.see(tk.END)
 
+def delete_last_step_from_executed_steps():
+    if executed_steps.size() > 0:  # Check if the Listbox is not empty
+        last_index = executed_steps.size() - 1  # Index of the last item
+        executed_steps.delete(last_index)  # Delete the last item
+
 
 
 
@@ -467,6 +488,7 @@ start_button = tk.Button(nav_bar, text="Start", command=start_record)
 run_button = tk.Button(nav_bar, text="Run Script", command=run_script)
 open_report_button = tk.Button(nav_bar, text="Open Report", command=report_open)
 stop_button = tk.Button(nav_bar, text="Stop", command=stop_recording)
+delete_button = tk.Button(nav_bar, text="Stop", command=delete_step)
 pause_resume_button = tk.Button(nav_bar, text="Pause", command=pause_recording)
 end_if_button = tk.Button(nav_bar, text="End if segment", command=end_if)
 end_if_then_button = tk.Button(nav_bar, text="End if then segment", command=end_if_then)
