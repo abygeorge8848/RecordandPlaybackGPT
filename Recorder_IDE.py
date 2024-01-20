@@ -489,6 +489,7 @@ def insert_step():
     now = int(time.time() * 1000)
     conn([["custom-step", now, custom_step]])
     update_steps(f"Custom step enetred : {custom_step}")
+    insert_custom_frame.pack_forget()
 
 
 
@@ -498,8 +499,22 @@ def update_steps(step):
 
 def delete_last_step_from_executed_steps():
     if executed_steps.size() > 0:  # Check if the Listbox is not empty
+        last = 1
+        last_item = get_last_item(last)
         last_index = executed_steps.size() - 1  # Index of the last item
+        while last_item is not None and (last_item == "Pause Recording" or last_item == "Resume Recording"):   
+            last_index -= 1
+            last += 1
+            last_item = get_last_item(last)
         executed_steps.delete(last_index)  # Delete the last item
+
+def get_last_item(last):
+    if executed_steps.size() > 0:  # Check if the Listbox is not empty
+        last_index = executed_steps.size() - last  # Index of the last item
+        return executed_steps.get(last_index)  # Get the last item
+    else:
+        return None  # Return None if the Listbox is empt
+
 
 
 
