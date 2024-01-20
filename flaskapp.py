@@ -25,6 +25,7 @@ def delete_last_event():
     if events:  # Check if there are events in the list
         deleted_event = events.pop()  # Remove the last event
         print(f"\nDeleted event: {deleted_event}\n")
+        print(f"\n\n The saved events are : {events} \n\n")
         # Return the status and the deleted event
         return jsonify({"status": "success", "deleted_event": deleted_event})
     else:

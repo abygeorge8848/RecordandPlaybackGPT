@@ -12,6 +12,9 @@ def reformat_paf_activity(event_queue):
             PAF_SCRIPT += "\t<WaitForPageLoad/>\n"
         elif event["event"] == "end-loop":
             PAF_SCRIPT += "\t</loop>\n"
+        elif event["event"] == "custom-step":
+            custom_step = event["custom_step"]
+            PAF_SCRIPT += f'\t{custom_step}\n'
         elif event["event"] == "start-loop":
             startIndex = event["startIndex"]
             lastIndex = event["lastIndex"]

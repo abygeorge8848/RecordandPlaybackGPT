@@ -12,6 +12,7 @@ def start_record():
     stop_button.pack(side=tk.LEFT, padx=5)
     pause_resume_button.config(text="Pause", command=pause_recording)
     pause_resume_button.pack(side=tk.LEFT, padx=5)
+    delete_button.pack(side=tk.LEFT, padx=5)
     update_steps("Start Recording")
     disable_dropdown_options()
     url = url_entry.get()
@@ -33,6 +34,7 @@ def pause_recording():
     pause_recording_main()
     pause_resume_button.config(text="Resume", command=resume_recording)
     dropdown_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
+    insert_custom_button.pack(side=tk.RIGHT, padx=5)
     update_steps("Pause Recording")
     enable_dropdown_options()
 
@@ -48,6 +50,8 @@ def resume_recording():
     validation_not_equals_frame.pack_forget()
     validation_num_equals_frame.pack_forget()
     validation_num_not_equals_frame.pack_forget()
+    loop_frame.pack_forget()
+    insert_custom_button.pack_forget()
     update_steps("Resume Recording")
     disable_dropdown_options()
 
@@ -59,8 +63,6 @@ def run_script():
         run_button.pack_forget()
         open_report_button.pack(side=tk.LEFT, padx=5)
 
-import tkinter as tk
-from tkinter import messagebox
 
 def delete_step():
     # Show a confirmation dialog
@@ -68,12 +70,22 @@ def delete_step():
     # Check the user's response
     if user_response:  # If the user clicked 'Yes'
         deleted_event = delete_last_event()
-        if deleted_event[0] == "end-if" or deleted_event[0] == "end-if-then" or deleted_event[0] == "end-else" or deleted_event[0] == "end-loop" or deleted_event[0] == "loop" or deleted_event[0] == "getText" or deleted_event[0] == "validation-exists" or deleted_event[0] == "validation-not-exists" or deleted_event[0] == "validation-equals" or deleted_event[0] == "validation-not-equals" or deleted_event[0] == "validation-num-equals" or deleted_event[0] == "validation-num-not-equals" or deleted_event[0] == "if-condition" or deleted_event[0] == "if-else-condition" or deleted_event[0] == "variable-value":
+        if deleted_event[0] == "end-if" or deleted_event[0] == "end-if-then" or deleted_event[0] == "end-else" or deleted_event[0] == "end-loop" or deleted_event[0] == "loop" or deleted_event[0] == "getText" or deleted_event[0] == "validation-exists" or deleted_event[0] == "validation-not-exists" or deleted_event[0] == "validation-equals" or deleted_event[0] == "validation-not-equals" or deleted_event[0] == "validation-num-equals" or deleted_event[0] == "validation-num-not-equals" or deleted_event[0] == "if-condition" or deleted_event[0] == "if-else-condition" or deleted_event[0] == "variable-value" or deleted_event[0] == "custom-step":
             delete_last_step_from_executed_steps()
     else:
         return
 
 
+def insert_custom_step():
+    insert_custom_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
+    validation_exists_frame.pack_forget()
+    validation_not_exists_frame.pack_forget()
+    validation_equals_frame.pack_forget()
+    validation_not_equals_frame.pack_forget()
+    validation_num_equals_frame.pack_forget()
+    validation_num_not_equals_frame.pack_forget()
+    variable_value_frame.pack_forget()
+    loop_frame.pack_forget()
 
 def end_if():
     now = int(time.time() * 1000)
@@ -118,6 +130,7 @@ def disable_dropdown_options():
     dropdown.configure(state='disabled')
     get_text_frame.pack_forget()
     validation_exists_frame.pack_forget()
+    insert_custom_frame.pack_forget()
 
 def show_validation_menu(event):
     # Display the menu if the selected option is "validation"
@@ -152,6 +165,7 @@ def handle_validation_option(selected_validation):
             validation_num_not_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
+            insert_custom_frame.pack_forget()
         elif selected_validation == "not-exists":
             validation_not_exists_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -162,6 +176,7 @@ def handle_validation_option(selected_validation):
             validation_num_not_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
+            insert_custom_frame.pack_forget()
         elif selected_validation == "equals":
             validation_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -172,6 +187,7 @@ def handle_validation_option(selected_validation):
             validation_num_not_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
+            insert_custom_frame.pack_forget()
         elif selected_validation == "not-equals":
             validation_not_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -182,6 +198,7 @@ def handle_validation_option(selected_validation):
             validation_num_not_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
+            insert_custom_frame.pack_forget()
         elif selected_validation == "num-equals":
             validation_num_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -192,6 +209,7 @@ def handle_validation_option(selected_validation):
             validation_num_not_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
+            insert_custom_frame.pack_forget()
         elif selected_validation == "num-not-equals":
             validation_num_not_equals_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             get_text_frame.pack_forget()
@@ -202,6 +220,7 @@ def handle_validation_option(selected_validation):
             validation_num_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
+            insert_custom_frame.pack_forget()
         else:
             variable_value_frame.pack_forget()
             get_text_frame.pack_forget()
@@ -212,6 +231,7 @@ def handle_validation_option(selected_validation):
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
             loop_frame.pack_forget()
+            insert_custom_frame.pack_forget()
     
 
 def handle_dropdown_selection(event):
@@ -227,6 +247,7 @@ def handle_dropdown_selection(event):
             validation_num_not_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
             loop_frame.pack_forget()
+            insert_custom_frame.pack_forget()
         elif selected == "variable-value":
             variable_value_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             validation_num_not_equals_frame.pack_forget()
@@ -237,6 +258,7 @@ def handle_dropdown_selection(event):
             validation_not_equals_frame.pack_forget()
             validation_num_equals_frame.pack_forget()
             loop_frame.pack_forget()
+            insert_custom_frame.pack_forget()
         elif selected == "loop":
             loop_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
             variable_value_frame.pack(side=tk.TOP, pady=5, fill=tk.X)
@@ -248,6 +270,7 @@ def handle_dropdown_selection(event):
             validation_not_equals_frame.pack_forget()
             validation_num_equals_frame.pack_forget()
             variable_value_frame.pack_forget()
+            insert_custom_frame.pack_forget()
         else:
             variable_value_frame.pack_forget()
             get_text_frame.pack_forget()
@@ -257,6 +280,7 @@ def handle_dropdown_selection(event):
             validation_not_equals_frame.pack_forget()
             validation_num_equals_frame.pack_forget()
             validation_num_not_equals_frame.pack_forget()
+            insert_custom_frame.pack_forget()
     else:
         messagebox.showinfo("Alert", "Please pause the recording before entering custom steps.")
 
@@ -460,6 +484,13 @@ def start_loop():
     end_loop_create(counterVar)
     update_steps(f"start-loop: Counter var -{counterVar}")
 
+def insert_step():
+    custom_step = custom_step_entry.get()
+    now = int(time.time() * 1000)
+    conn([["custom-step", now, custom_step]])
+    update_steps(f"Custom step enetred : {custom_step}")
+
+
 
 def update_steps(step):
     executed_steps.insert(tk.END, step)
@@ -488,7 +519,8 @@ start_button = tk.Button(nav_bar, text="Start", command=start_record)
 run_button = tk.Button(nav_bar, text="Run Script", command=run_script)
 open_report_button = tk.Button(nav_bar, text="Open Report", command=report_open)
 stop_button = tk.Button(nav_bar, text="Stop", command=stop_recording)
-delete_button = tk.Button(nav_bar, text="Stop", command=delete_step)
+delete_button = tk.Button(nav_bar, text="Delete", command=delete_step)
+insert_custom_button = tk.Button(nav_bar, text="Insert", command=insert_custom_step)
 pause_resume_button = tk.Button(nav_bar, text="Pause", command=pause_recording)
 end_if_button = tk.Button(nav_bar, text="End if segment", command=end_if)
 end_if_then_button = tk.Button(nav_bar, text="End if then segment", command=end_if_then)
@@ -514,7 +546,18 @@ validation_menu = create_validation_menu()
 dropdown.bind("<Motion>", show_validation_menu)
 
 dropdown_frame = tk.Frame(sidebar)
-dropdown.pack(fill=tk.X)       
+dropdown.pack(fill=tk.X)     
+
+
+insert_custom_frame = tk.Frame(sidebar)
+title_label = tk.Label(insert_custom_frame, text='Insert a custom step')
+title_label.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+custom_step_entry = tk.Entry(insert_custom_frame)
+custom_step_entry.insert(0, 'Enter the custom step')
+custom_step_entry.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+custom_step_button = tk.Button(insert_custom_frame, text="Insert", command=insert_step)
+custom_step_button.pack(side=tk.TOP)
+
 
 get_text_frame = tk.Frame(sidebar)
 variable_frame = tk.Frame(get_text_frame)

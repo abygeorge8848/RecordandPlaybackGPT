@@ -358,7 +358,7 @@ def stop_and_show_records():
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
             
-            if event_type == "frame":
+            elif event_type == "frame":
                 if combined_input:
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
@@ -369,7 +369,7 @@ def stop_and_show_records():
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
             
-            if event_type == "start-loop":
+            elif event_type == "start-loop":
                 if combined_input:
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
@@ -383,12 +383,23 @@ def stop_and_show_records():
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
 
-            if event_type == "end-loop":
+            elif event_type == "end-loop":
                 if combined_input:
                     event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
                     combined_input = None
                     combined_xpath = None
                 event_queue.append({"event": event_type})
+                prev_event_was_input = False 
+                prev_event_was_wait = False
+                prev_event_was_waitforpageload == False
+
+            elif event_type == "custom-step":
+                if combined_input:
+                    event_queue.append({"event": "input", "xpath": combined_xpath, "value": combined_input})
+                    combined_input = None
+                    combined_xpath = None
+                custom_step = others[0]
+                event_queue.append({"event": event_type, "custom_step": custom_step})
                 prev_event_was_input = False 
                 prev_event_was_wait = False
                 prev_event_was_waitforpageload == False
