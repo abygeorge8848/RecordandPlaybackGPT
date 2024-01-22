@@ -103,7 +103,7 @@ def reformat_paf_activity(event_queue):
                 PAF_SCRIPT += f'\t<validation valGroupIds="{validation_name}"></validation>\n'
             elif if_else_condition:
                 PAF_SCRIPT += f'\t<if valGroupIds="{validation_name}">\n'
-                PAF_SCRIPT += f'\t<then>\n'
+                PAF_SCRIPT += f'\t\t<then>\n'
             else:
                 PAF_SCRIPT += f'\t<if valGroupIds="{validation_name}">\n'
             VALIDATION_SCRIPT += f'\n<valGroup groupId="{validation_name}">\n'
