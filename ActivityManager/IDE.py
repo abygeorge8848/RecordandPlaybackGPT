@@ -1,5 +1,15 @@
 import tkinter as tk
 from tkinter import filedialog, ttk
+from pull_files import pull_activities
+
+
+def choose_folder(entry_widget):
+    folder_selected = filedialog.askdirectory()
+    if folder_selected:
+        entry_widget.delete(0, tk.END)  # Clear the current entry
+        entry_widget.insert(0, folder_selected)  # Insert the selected folder path
+        pull_activities(folder_selected)  # Call pull_activities with the folder path
+
 
 def create_activity():
     # Implement the function to create an activity
