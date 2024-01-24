@@ -71,10 +71,13 @@ def add_to_chosen_activities(event):
     tree = event.widget
     item_id = tree.focus()
     if item_id:
-        activity_name = tree.item(item_id, 'values')[0]
-        print(f"Chosen item id : {item_id} and activity name : {activity_name}")
-        chosen_activities_tree.insert('', tk.END, values=(activity_name), tags=('oddrow',))
+        item_values = tree.item(item_id, 'values')
+        activity_name = item_values[0]
+        full_text = f"{activity_name}"
+        print(f"Chosen item id : {item_id} and activity name : {full_text}")
+        chosen_activities_tree.insert('', tk.END, values=(full_text,), tags=('oddrow',))
         update_chosen_activities()
+
 
 def style_edit_column(tree):
     tree.tag_configure('editTag', background='lightblue', font=('Arial', 10, 'bold'))  # Set background color and bold font
