@@ -1,7 +1,9 @@
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, ttk, messagebox
 from pull_files import pull_activities
 from effects import create_tooltip
+from xml_parsing import retrieve_activities, insert_recorder_id, update_activity_paths
+from excel import create_excel, is_legitimate_path
 
 
 def choose_folder(entry_widget):
@@ -99,7 +101,28 @@ def edit_activity(activity_name, tree):
 
 
 def generate_excel():
-    pass
+    selected_items = chosen_flows_tree.selection()  # Get selected items in the treeview
+    if selected_items:
+        selected_flow = chosen_flows_tree.item(selected_items[0], 'values')[0]
+        print(f"Generating excel for: {selected_flow}")
+        parts = selected_flow.split('   PATH : ')
+        flow_name = parts[0]
+        path = parts[1]
+        base_excel_path = excel_folder_entry.get()
+        is_path = is_legitimate_path(base_excel_path)
+        print(f"The base excel path is : {base_excel_path}")
+        if not is_path:
+            base_excel_path='C:\\Users\\u1138322\\PAF\\ProjectContainer\\SampleProject\\excel'
+            
+        create_excel(flow_name, base_excel_path)
+        activity_list = retrieve_activities(flow_name, path)
+        updated_activity_list = update_activity_paths(activity_list, base_excel_path)
+        insert_recorder_id(updated_activity_list)
+        
+
+    else:
+        # If no flow is selected, show an alert
+        messagebox.showinfo("No Selection", "Please select a flow you want to generate the excel for")
 
 def duplicate_excel():
     pass
@@ -220,10 +243,10 @@ generate_excel_button.pack(side=tk.LEFT, padx=(0, 10))
 duplicate_excel_button = ttk.Button(excel_frame, text="Duplicate Excel", command=duplicate_excel)
 duplicate_excel_button.pack(side=tk.LEFT)
 
-folder_entry = ttk.Entry(excel_frame)
-folder_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(10, 10))
+excel_folder_entry = ttk.Entry(excel_frame)
+excel_folder_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(10, 10))
 
-choose_folder_button = ttk.Button(excel_frame, text="Choose Folder", command=lambda: choose_folder(folder_entry))
+choose_folder_button = ttk.Button(excel_frame, text="Choose Folder", command=lambda: choose_folder(excel_folder_entry))
 choose_folder_button.pack(side=tk.LEFT)
 
 # Run the application
