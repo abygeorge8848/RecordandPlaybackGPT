@@ -9,7 +9,7 @@ def pull_activities(folder_path):
             try:
                 tree = ET.parse(file_path)
                 root = tree.getroot()
-                for activity in root.findall(".//flow"):
+                for activity in root.findall(".//activity"):
                     activity_id = activity.get('id')
                     if activity_id:
                         activity_path = activity_id + "   PATH : " + file_path 

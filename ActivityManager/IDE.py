@@ -238,7 +238,7 @@ available_activities_label = ttk.Label(available_activities_frame, text="Availab
 available_activities_label.pack(side=tk.TOP, fill=tk.X)
 
 available_activities_tree = ttk.Treeview(available_activities_frame, columns=('activity', 'Edit'), show='headings')
-available_activities_tree.heading('activity', text='activity')
+available_activities_tree.heading('activity', text='Activity')
 available_activities_tree.heading('Edit', text='Edit')
 available_activities_tree.column('activity', width=200) 
 available_activities_tree.column('Edit', width=100, anchor='center')
@@ -258,8 +258,8 @@ chosen_activities_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0
 chosen_activities_label = ttk.Label(chosen_activities_frame, text="Chosen activities")
 chosen_activities_label.pack(side=tk.TOP, fill=tk.X)
 
-chosen_activities_tree = ttk.Treeview(chosen_activities_frame, columns=('activity'), show='headings')
-chosen_activities_tree.heading('activity', text='activity')
+chosen_activities_tree = ttk.Treeview(chosen_activities_frame, columns=('Activity'), show='headings')
+chosen_activities_tree.heading('activity', text='Activity')
 chosen_activities_tree.column('activity', width=300, stretch=tk.YES)
 
 ch_act_vscroll = ttk.Scrollbar(chosen_activities_frame, orient="vertical", command=chosen_activities_tree.yview)
