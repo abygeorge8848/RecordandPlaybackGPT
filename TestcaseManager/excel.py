@@ -1,5 +1,7 @@
 import xml.etree.ElementTree as ET
 import pandas as pd
+import openpyxl
+from openpyxl import load_workbook
 import os
 
 
@@ -98,4 +100,29 @@ def extract_data_and_write_to_excel(data, base_excel_path):
     print(f"Data written to Excel at {base_excel_path}")
 
 
+
+
+def create_duplicates(num_duplicates, base_excel_path):
+    sheets = []
+    print(f"Creating {num_duplicates} duplicates of sheet1 in {base_excel_path}")
+    # Load the workbook and the first sheet
+    workbook = load_workbook(base_excel_path)
+    sheet_names = workbook.sheetnames
+    if not sheet_names:
+        print("No sheets found in the Excel file.")
+        return
+    first_sheet_name = sheet_names[0]
+    first_sheet = workbook[first_sheet_name]
+    # Duplicate the first sheet num_duplicates times
+    for i in range(num_duplicates):
+        # Create a new sheet name for each duplicate
+        new_sheet_name = f"{first_sheet_name}_Copy{i+1}"
+        # Copy the sheet
+        new_sheet = workbook.copy_worksheet(first_sheet)
+        new_sheet.title = new_sheet_name
+        sheets.append(new_sheet_name)
+    # Save the workbook
+    workbook.save(base_excel_path)
+    print(f"Successfully created {num_duplicates} duplicates of '{first_sheet_name}' in '{base_excel_path}'")
+    return sheets
 

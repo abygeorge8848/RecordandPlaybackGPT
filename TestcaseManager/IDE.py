@@ -1,9 +1,10 @@
 import tkinter as tk
-from tkinter import filedialog, ttk, messagebox
+from tkinter import filedialog, ttk, messagebox, Toplevel, Label, Entry, Button
 from pull_files import pull_activities
 from effects import create_tooltip
 from xml_parsing import retrieve_activities, insert_recorder_id, update_activity_paths
-from excel import create_excel, is_legitimate_path, extract_data_and_write_to_excel
+from excel import create_excel, is_legitimate_path, extract_data_and_write_to_excel, create_duplicates
+import os
 
 
 def choose_folder(entry_widget):
@@ -101,19 +102,14 @@ def edit_activity(activity_name, tree):
 
 
 def generate_excel():
+    base_excel_path='C:\\Users\\u1138322\\PAF\\ProjectContainer\\SampleProject\\excel'
     selected_items = chosen_flows_tree.selection()  # Get selected items in the treeview
     if selected_items:
         selected_flow = chosen_flows_tree.item(selected_items[0], 'values')[0]
         print(f"Generating excel for: {selected_flow}")
         parts = selected_flow.split('   PATH : ')
         flow_name = parts[0]
-        path = parts[1]
-        base_excel_path = excel_folder_entry.get()
-        is_path = is_legitimate_path(base_excel_path)
-        print(f"The base excel path is : {base_excel_path}")
-        if not is_path:
-            base_excel_path='C:\\Users\\u1138322\\PAF\\ProjectContainer\\SampleProject\\excel'
-            
+        path = parts[1]        
         base_excel_path = create_excel(flow_name, base_excel_path)
         activity_list = retrieve_activities(flow_name, path)
         updated_activity_list = update_activity_paths(activity_list, base_excel_path)
@@ -126,7 +122,70 @@ def generate_excel():
         messagebox.showinfo("No Selection", "Please select a flow you want to generate the excel for")
 
 def duplicate_excel():
-    pass
+    base_excel_path='C:\\Users\\u1138322\\PAF\\ProjectContainer\\SampleProject\\excel'
+    selected_items = chosen_flows_tree.selection()  # Get selected items in the treeview
+    if selected_items:
+        selected_flow = chosen_flows_tree.item(selected_items[0], 'values')[0]
+        print(f"Generating excel for: {selected_flow}")
+        parts = selected_flow.split('   PATH : ')
+        flow_name = parts[0]
+        path = parts[1]
+        file_name = f"{flow_name}.xlsx"
+        file_path = os.path.join(base_excel_path, file_name)
+        if not os.path.isfile(file_path):
+            messagebox.showinfo("File Not Found", "There is no excel for this flow. Please generate an excel before you duplicate it.")
+        else:
+            open_duplicate_window(file_path, chosen_flows_tree)
+    
+    else:
+        # If no flow is selected, show an alert
+        messagebox.showinfo("No Selection", "Please select a flow you want to generate the excel for")
+
+def open_duplicate_window(base_excel_path, chosen_flows_tree):
+    # New window for duplicating the file
+    duplicate_window = tk.Toplevel()
+    duplicate_window.title("Duplicate Excel File")
+    duplicate_window.geometry("350x150")  # Adjust the window size for better fit
+    duplicate_window.resizable(False, False)  # Disable resizing
+    # Frame for content
+    content_frame = ttk.Frame(duplicate_window, padding="10")
+    content_frame.pack(expand=True, fill=tk.BOTH)
+    # Label and textfield for number of duplicates
+    label = ttk.Label(content_frame, text="Number of duplicates:", font=("Arial", 10))
+    label.pack(side=tk.TOP, fill=tk.X, pady=(0, 5))
+    num_duplicates_entry = ttk.Entry(content_frame, font=("Arial", 10))
+    num_duplicates_entry.pack(side=tk.TOP, fill=tk.X, pady=(0, 10))
+    # Duplicate button
+    duplicate_button = ttk.Button(content_frame, text="Duplicate", command=lambda: duplicate_file(duplicate_window, num_duplicates_entry, base_excel_path, chosen_flows_tree))
+    duplicate_button.pack(side=tk.TOP, pady=(0, 10))
+
+    # Center the window on the screen
+    center_window_on_screen(duplicate_window)
+
+def center_window_on_screen(window):
+    window.update_idletasks()
+    width = window.winfo_width()
+    height = window.winfo_height()
+    x = (window.winfo_screenwidth() // 2) - (width // 2)
+    y = (window.winfo_screenheight() // 2) - (height // 2)
+    window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+
+
+def duplicate_file(duplicate_window, num_duplicates_entry, base_excel_path, chosen_flows_tree):
+    try:
+        num_duplicates = int(num_duplicates_entry.get())
+    except ValueError:
+        messagebox.showinfo("Invalid Input", "Please enter a valid number")
+        return
+    # Close the duplicate window
+    duplicate_window.destroy()
+    # Call the new function for duplicating the file
+    sheets = create_duplicates(num_duplicates, base_excel_path)
+
+
+
+
+
 
 # Create the main window
 root = tk.Tk()
@@ -243,12 +302,6 @@ generate_excel_button.pack(side=tk.LEFT, padx=(0, 10))
 
 duplicate_excel_button = ttk.Button(excel_frame, text="Duplicate Excel", command=duplicate_excel)
 duplicate_excel_button.pack(side=tk.LEFT)
-
-excel_folder_entry = ttk.Entry(excel_frame)
-excel_folder_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(10, 10))
-
-choose_folder_button = ttk.Button(excel_frame, text="Choose Folder", command=lambda: choose_folder(excel_folder_entry))
-choose_folder_button.pack(side=tk.LEFT)
 
 # Run the application
 root.mainloop()
