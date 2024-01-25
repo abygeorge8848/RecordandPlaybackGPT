@@ -3,7 +3,7 @@ from tkinter import filedialog, ttk, messagebox
 from pull_files import pull_activities
 from effects import create_tooltip
 from xml_parsing import retrieve_activities, insert_recorder_id, update_activity_paths
-from excel import create_excel, is_legitimate_path
+from excel import create_excel, is_legitimate_path, extract_data_and_write_to_excel
 
 
 def choose_folder(entry_widget):
@@ -114,10 +114,11 @@ def generate_excel():
         if not is_path:
             base_excel_path='C:\\Users\\u1138322\\PAF\\ProjectContainer\\SampleProject\\excel'
             
-        create_excel(flow_name, base_excel_path)
+        base_excel_path = create_excel(flow_name, base_excel_path)
         activity_list = retrieve_activities(flow_name, path)
         updated_activity_list = update_activity_paths(activity_list, base_excel_path)
         insert_recorder_id(updated_activity_list)
+        extract_data_and_write_to_excel(updated_activity_list, base_excel_path)
         
 
     else:

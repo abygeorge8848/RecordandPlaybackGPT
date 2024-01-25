@@ -55,12 +55,17 @@ def insert_recorder_ids_recursively(element, recorder_id_counter, root):
             if val_group_ids:
                 val_group = root.find(f".//valGroup[@groupId='{val_group_ids}']")
                 if val_group is not None:
-                    val_group.set('recorderId', f'recorder_id_step_{recorder_id_counter}')
-                    recorder_id_counter += 1
+                    # Find the 'validate' child within 'valGroup' and assign recorderId
+                    validate_tag = val_group.find('validate')
+                    if validate_tag is not None:
+                        validate_tag.set('recorderId', f'recorder_id_step_{recorder_id_counter}')
+                        recorder_id_counter += 1
+
         # Recursively process all child elements
         recorder_id_counter = insert_recorder_ids_recursively(child, recorder_id_counter, root)
 
     return recorder_id_counter
+
 
 
 def insert_recorder_id(data):
