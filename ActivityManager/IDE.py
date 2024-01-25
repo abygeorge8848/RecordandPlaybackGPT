@@ -197,6 +197,19 @@ style.theme_use('clam')
 navbar_frame = tk.Frame(root)
 navbar_frame.pack(padx=12, pady=2, fill=tk.X)
 
+flow_frame = ttk.Frame(root)
+flow_frame.pack(padx=12, pady=5, fill=tk.X)
+
+flow_name_label = ttk.Label(flow_frame, text="Flow Name")
+flow_name_label.pack(side=tk.LEFT, padx=(0, 10))
+flow_name_entry = ttk.Entry(flow_frame)
+flow_name_entry.pack(side=tk.LEFT, padx=(0, 10))
+
+flow_description_label = ttk.Label(flow_frame, text="Flow Description")
+flow_description_label.pack(side=tk.LEFT, padx=(10, 10))
+flow_description_entry = ttk.Entry(flow_frame)
+flow_description_entry.pack(side=tk.LEFT)
+
 
 add_activity_button = tk.Button(navbar_frame, text="Confirm Testcase", command=add_activity)
 add_activity_button.pack(side=tk.LEFT)
@@ -258,7 +271,7 @@ chosen_activities_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0
 chosen_activities_label = ttk.Label(chosen_activities_frame, text="Chosen activities")
 chosen_activities_label.pack(side=tk.TOP, fill=tk.X)
 
-chosen_activities_tree = ttk.Treeview(chosen_activities_frame, columns=('Activity'), show='headings')
+chosen_activities_tree = ttk.Treeview(chosen_activities_frame, columns=('activity'), show='headings')
 chosen_activities_tree.heading('activity', text='Activity')
 chosen_activities_tree.column('activity', width=300, stretch=tk.YES)
 
