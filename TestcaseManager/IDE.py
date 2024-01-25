@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk, messagebox, Toplevel, Label, Entry, Button
 from project_interaction import pull_activities, write_init
 from effects import create_tooltip
+from RunPAF import run_file, report_open
 from xml_parsing import retrieve_activities, insert_recorder_id, update_activity_paths
 from excel import create_excel, is_legitimate_path, extract_data_and_write_to_excel, create_duplicates
 import os
@@ -52,6 +53,7 @@ def run_suite():
     path = (flow_names[0].split('PATH : '))[1]
     flow_path = os.path.relpath(path, project_path)
     flow_path = os.path.join('.', flow_path)
+    flow_path.replace('\\', '/')
     print(f"The flow path to be written to init properties is : {flow_path}")
     for flow_name in flow_names:
         flow_ids.append((flow_name.split('PATH : ')[0]).strip())
@@ -62,7 +64,14 @@ def run_suite():
     if not init_path:
         additional_path = '/src/init.properties'
         init_path = os.path.join(project_path, additional_path.strip("/"))
-    write_init(init_path, url, flow_path,flow_statement )
+    write_status = write_init(init_path, url, flow_path, flow_statement)
+    if write_status:
+        print("\n I'll try to run your PAF script now! \n\n")
+        file_run = run_file()
+        print(f"The file run result is : {file_run}")
+        if file_run:
+            open_report_button.pack(side=tk.LEFT, padx=5)
+    
 
     
 
@@ -138,9 +147,12 @@ root.title("Flow Manager")
 style = ttk.Style()
 style.theme_use('clam')
 
+
 # Create navbar frame
 navbar_frame = tk.Frame(root)
 navbar_frame.pack(padx=12, pady=2, fill=tk.X)
+
+open_report_button = tk.Button(navbar_frame, text="Open Report", command=report_open)
 
 url_name_label = ttk.Label(navbar_frame, text="Enter URL")
 url_name_label.pack(side=tk.LEFT, padx=(0, 10))
