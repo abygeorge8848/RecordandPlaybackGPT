@@ -18,7 +18,7 @@ def create_excel(flow_name, base_path):
         print("Error: The file path is not an absolute path.")
         return
     # Define the columns
-    columns = ['recorderId', 'tag', 'xpath', 'keyName', 'value', 'condition', 'exists', 'variable1', 'variable2']
+    columns = ['recorderId', 'tag', 'xpath', 'keyName', 'value', 'condition', 'exists', 'variable', 'expression']
     # Create an empty DataFrame with these columns
     df = pd.DataFrame(columns=columns)
     # Save the DataFrame as an Excel file
@@ -63,14 +63,15 @@ def extract_data_and_write_to_excel(data, base_excel_path):
         if activity is not None:
             for child in activity:
                 # Process 'input', 'if', and 'validation' tags
-                if child.tag in ['input', 'if', 'validation']:
+                if child.tag in ['input', 'if', 'validation', 'variable']:
                     row_data = {
                         'tag': child.tag,
                         'xpath': child.get('xpath', ''),
                         'value': child.get('value', ''),
                         'recorderId': child.get('recorderId', ''),
-                        'variable1': '',
-                        'variable2': ''
+                        'variable': child.get('variable', ''),
+                        'keyName': child.get('keyName', ''),
+                        'expression': child.get('expression', ''),
                     }
                     extracted_data.append(row_data)
 
@@ -87,8 +88,8 @@ def extract_data_and_write_to_excel(data, base_excel_path):
                                         'xpath': validate_tag.get('xpath', ''),
                                         'value': validate_tag.get('value', ''),
                                         'recorderId': validate_tag.get('recorderId', ''),
-                                        'variable1': validate_tag.get('variable', ''),
-                                        'variable2': validate_tag.get('value', ''),
+                                        'variable': validate_tag.get('variable', ''),
+                                        'value': validate_tag.get('value', ''),
                                         'exists': validate_tag.get('exists', ''),
                                         'condition': validate_tag.get('condition', ''),
                                     }

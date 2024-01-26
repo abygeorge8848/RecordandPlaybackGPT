@@ -2,24 +2,29 @@ import tkinter as tk
 from tkinter import filedialog, ttk, messagebox, Toplevel, Label, Entry, Button
 from pull_files import pull_activities
 from effects import create_tooltip
-from xml_parsing import retrieve_activities, insert_recorder_id, update_activity_paths
+from xml_parsing import insert_recorder_id
 from excel import create_excel, extract_data_and_write_to_excel, create_duplicates
 import os
 
 
+project_path = "C:\\Users\\u1138322\\PAF\\ProjectContainer\\SampleProject"
+
 def choose_folder(entry_widget):
+    excel_path='\\excel'
+    base_excel_path = project_path + excel_path
     print("Extracting all your available activities!")
     folder_selected = filedialog.askdirectory()
     if folder_selected:
         entry_widget.delete(0, tk.END)  # Clear the current entry
         entry_widget.insert(0, folder_selected)  # Insert the selected folder path
-        available_activities = pull_activities(folder_selected)  # Call pull_activities with the folder path
+        available_activities = pull_activities(folder_selected, base_excel_path)  # Call pull_activities with the folder path
+        print(f"The available activities along with their corresponding sheets are : {available_activities}")
         # Clear existing items in the treeview
         for item in available_activities_tree.get_children():
             available_activities_tree.delete(item)
 
         bordered_edit_text = '▌Edit▐'  # Unicode characters for left and right border
-        for index, activity in enumerate(available_activities):
+        for index, activity, sheets in enumerate(available_activities):
             tag = 'oddrow' if index % 2 else ''  # Apply tag for alternating row colors
             # activity_path = f"{activity[0]}  -  {activity[1]}"
             print(activity[0])
@@ -106,27 +111,9 @@ def edit_activity(activity_name, tree):
 
 
 def generate_excel():
-    base_excel_path='C:\\Users\\u1138322\\PAF\\ProjectContainer\\SampleProject\\excel'
-    selected_items = chosen_activities_tree.selection()  # Get selected items in the treeview
-    if selected_items:
-        selected_activity = chosen_activities_tree.item(selected_items[0], 'values')[0]
-        print(f"Generating excel for: {selected_activity}")
-        parts = selected_activity.split('   PATH : ')
-        activity_name = parts[0]
-        path = parts[1]        
-        base_excel_path = create_excel(activity_name, base_excel_path)
-        activity_list = retrieve_activities(activity_name, path)
-        updated_activity_list = update_activity_paths(activity_list, base_excel_path)
-        insert_recorder_id(updated_activity_list)
-        extract_data_and_write_to_excel(updated_activity_list, base_excel_path)
-        
-
-    else:
-        # If no activity is selected, show an alert
-        messagebox.showinfo("No Selection", "Please select a activity you want to generate the excel for")
-
-def duplicate_excel():
-    base_excel_path='C:\\Users\\u1138322\\PAF\\ProjectContainer\\SampleProject\\excel'
+    excel_path='\\excel'
+    base_excel_path = project_path + excel_path
+    print(f"The base excel path is : {base_excel_path}")
     selected_items = chosen_activities_tree.selection()  # Get selected items in the treeview
     if selected_items:
         selected_activity = chosen_activities_tree.item(selected_items[0], 'values')[0]
@@ -134,7 +121,28 @@ def duplicate_excel():
         parts = selected_activity.split('   PATH : ')
         activity_name = parts[0]
         path = parts[1]
-        file_name = f"{activity_name}.xlsx"
+        unique_excel_name = activity_name + "_" + (path.split('.')[0]).replace('/', '-').strip().replace("\\", "-").replace(":", "")
+        print(f"The unique excel name is : {unique_excel_name}")
+        base_excel_path = create_excel(unique_excel_name, base_excel_path)
+        insert_recorder_id([{'activity': activity_name, 'path': path}])
+        extract_data_and_write_to_excel([{'activity': activity_name, 'path': path}], base_excel_path)
+        
+
+    else:
+        # If no activity is selected, show an alert
+        messagebox.showinfo("No Selection", "Please select a activity you want to generate the excel for")
+
+def duplicate_excel():
+    excel_path='\\excel'
+    base_excel_path = project_path + excel_path
+    selected_items = chosen_activities_tree.selection()  # Get selected items in the treeview
+    if selected_items:
+        selected_activity = chosen_activities_tree.item(selected_items[0], 'values')[0]
+        print(f"Generating excel for: {selected_activity}")
+        parts = selected_activity.split('   PATH : ')
+        activity_name = parts[0]
+        path = parts[1]
+        file_name = activity_name + "_" + (path.split('.')[0]).replace('/', '-').strip().replace("\\", "-").replace(":", "") + ".xlsx"
         file_path = os.path.join(base_excel_path, file_name)
         if not os.path.isfile(file_path):
             messagebox.showinfo("File Not Found", "There is no excel for this activity. Please generate an excel before you duplicate it.")
@@ -185,6 +193,7 @@ def duplicate_file(duplicate_window, num_duplicates_entry, base_excel_path, chos
     duplicate_window.destroy()
     # Call the new function for duplicating the file
     sheets = create_duplicates(num_duplicates, base_excel_path)
+    choose_folder(activity_entry)
 
 
 
@@ -193,7 +202,7 @@ def duplicate_file(duplicate_window, num_duplicates_entry, base_excel_path, chos
 
 # Create the main window
 root = tk.Tk()
-root.title("activity Manager")
+root.title("Activity Manager")
 style = ttk.Style()
 style.theme_use('clam')
 

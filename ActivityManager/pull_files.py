@@ -1,7 +1,9 @@
 import os
 import xml.etree.ElementTree as ET
+import openpyxl
 
-def pull_activities(folder_path):
+
+def pull_activities(folder_path, base_excel_path):
     activities = []
     for dirpath, dirnames, filenames in os.walk(folder_path):
         for filename in filenames:
@@ -13,11 +15,21 @@ def pull_activities(folder_path):
                     for activity in root.findall(".//activity"):
                         activity_id = activity.get('id')
                         if activity_id:
-                            activity_path = activity_id + "   PATH : " + file_path 
-                            activities.append([activity_path, file_path])
+                            activity_path = activity_id + "   PATH : " + file_path
+                            unique_excel_name = activity_id + "_" + (file_path.split('.')[0]).replace('/', '-').strip().replace("\\", "-").replace(":", "") + ".xlsx"
+                            excel_file_path = os.path.join(base_excel_path, unique_excel_name)
+                            if os.path.exists(excel_file_path):
+                                # If the excel file exists, get the sheet names
+                                sheet_names = get_excel_sheet_names(excel_file_path)
+                            else:
+                                sheet_names = []
+
+                            activities.append([activity_path, file_path, sheet_names])
                 except ET.ParseError as e:
-                    # Log the error and continue with the next file
                     print(f"Error parsing file: {file_path}, Error: {e}")
-                    continue  # Skip to the next file
+                    continue
     return activities
 
+def get_excel_sheet_names(excel_file_path):
+    workbook = openpyxl.load_workbook(excel_file_path, read_only=True)
+    return workbook.sheetnames

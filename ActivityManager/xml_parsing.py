@@ -1,46 +1,6 @@
 import xml.etree.ElementTree as ET
 import os
 
-def retrieve_activities(flow_name, path):
-    tree = ET.parse(path)
-    root = tree.getroot()
-    # Find the <flow> element with the specified id
-    flow = root.find(f".//activity[@id='{flow_name}']")
-    # Check if the flow is found
-    if flow is not None:
-        # Initialize a list to store xml attribute values
-        xml_activities = []
-        # Iterate through all <call> tags and extract xml attribute
-        for call in flow.findall('call'):
-            xml_path = call.get('xml')
-            xml_activity = call.get('activity')
-            excel_path = call.get('excelPath')
-            if xml_path is not None:
-                xml_activities.append({"activity": xml_activity, "path": xml_path, "excelPath": excel_path})
-        print(xml_activities)
-        # Return the list
-        return xml_activities
-    else:
-        print(f"No flow found with id {flow_name}")
-
-
-
-def update_activity_paths(data, base_path):
-    project_container = 'ProjectContainer'
-    project_name_start = base_path.find(project_container) + len(project_container) + 1
-    project_name_end = base_path.find('\\', project_name_start)
-    project_path = base_path[:project_name_end]
-
-    # Updating paths for each activity
-    updated_data = []
-    for item in data:
-        # Concatenating the project path with individual activity paths
-        full_path = os.path.join(project_path, item['path'].strip('.\\').replace('\\', '/'))
-        updated_data.append({'activity': item['activity'], 'path': full_path})
-
-    print(f"The activities with their associated absolute path is : {updated_data}")
-    return updated_data
-
 
 
 def insert_recorder_ids_recursively(element, recorder_id_counter, root):
