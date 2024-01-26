@@ -3,7 +3,7 @@ from tkinter import filedialog, ttk, messagebox, Toplevel, Label, Entry, Button
 from pull_files import pull_activities
 from effects import create_tooltip
 from xml_parsing import retrieve_activities, insert_recorder_id, update_activity_paths
-from excel import create_excel, is_legitimate_path, extract_data_and_write_to_excel, create_duplicates
+from excel import create_excel, extract_data_and_write_to_excel, create_duplicates
 import os
 
 
@@ -14,11 +14,14 @@ def choose_folder(entry_widget):
         entry_widget.delete(0, tk.END)  # Clear the current entry
         entry_widget.insert(0, folder_selected)  # Insert the selected folder path
         available_activities = pull_activities(folder_selected)  # Call pull_activities with the folder path
-        bordered_edit_text = '▌Edit▐' # Unicode characters for left and right border
+        # Clear existing items in the treeview
+        for item in available_activities_tree.get_children():
+            available_activities_tree.delete(item)
 
+        bordered_edit_text = '▌Edit▐'  # Unicode characters for left and right border
         for index, activity in enumerate(available_activities):
             tag = 'oddrow' if index % 2 else ''  # Apply tag for alternating row colors
-            #activity_path = f"{activity[0]}  -  {activity[1]}"
+            # activity_path = f"{activity[0]}  -  {activity[1]}"
             print(activity[0])
             available_activities_tree.insert('', tk.END, values=(activity[0], bordered_edit_text), tags=(tag,))
 
@@ -26,6 +29,7 @@ def choose_folder(entry_widget):
         stripe_rows(available_activities_tree)
         stripe_rows(chosen_activities_tree)
         style_edit_column(available_activities_tree)
+
 
 
 def show_tooltip(event, tree):

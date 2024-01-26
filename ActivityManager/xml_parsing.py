@@ -5,7 +5,7 @@ def retrieve_activities(flow_name, path):
     tree = ET.parse(path)
     root = tree.getroot()
     # Find the <flow> element with the specified id
-    flow = root.find(f".//flow[@id='{flow_name}']")
+    flow = root.find(f".//activity[@id='{flow_name}']")
     # Check if the flow is found
     if flow is not None:
         # Initialize a list to store xml attribute values
