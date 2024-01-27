@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from waitress import serve
-from Recorder_IDE import root 
+from Recorder_IDE import Recorder
 import threading
 
 app = Flask(__name__)
@@ -44,10 +44,16 @@ def run_flask_app():
     print("The flask application has been successfully started!")
     serve(app, host='0.0.0.0', port=9005)
 
-if __name__ == '__main__':
+def run_app():
     flask_thread = threading.Thread(target=run_flask_app)
     flask_thread.start()
-    root.mainloop()
+    RecorderInstance = Recorder()
+    RecorderInstance.run()
+    
+
+if __name__ == '__main__':
+    run_app()
+    
     
     
 

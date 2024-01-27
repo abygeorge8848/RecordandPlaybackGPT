@@ -51,3 +51,31 @@ def insert_recorder_id(data):
             print(f"Activity '{activity_id}' not found in '{file_path}'")
 
 
+
+def insert_flow(flow_name, flow_desc, flow_path, activities_with_sheets):
+    try:
+        with open(flow_path, 'r') as file:
+            lines = file.readlines()
+        
+        for i, line in enumerate(lines):
+            if '<flows>' in line:
+                # Insert a new line and the provided text after '<flows>'
+                lines.insert(i + 1, '\n')
+                lines.insert(i + 2, f'\t<flow id="{flow_name}" desc="{flow_desc}" name="{flow_name} : {flow_desc}" summary="{flow_desc}">\n')
+                j = 0
+                for activity in activities_with_sheets:
+                    activity_name = activity['activity']
+                    xml_path = activity['path']
+                    excelPath = activity['sheets'][0]['excelPath']
+                    sheetName = activity['sheets'][0]['sheetName']
+                    lines.insert(i+3+j, f'\t\t<call activity="{activity_name}" xml="{xml_path}" excelPath="{excelPath}" sheetName="{sheetName}"></call>\n')
+                    j += 1
+                lines.insert(i+3+j, f'\t</flow>\n')
+                break  # Exit the loop after inserting
+        
+        # Write the modified content back to the file
+        with open(flow_path, 'w') as file:
+            file.writelines(lines)
+            
+    except Exception as e:
+        print(f"An error occurred: {e}")

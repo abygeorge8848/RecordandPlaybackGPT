@@ -24,7 +24,7 @@ def pull_activities(folder_path, base_excel_path):
                             else:
                                 sheet_names = []
 
-                            activities.append([activity_path, file_path, sheet_names])
+                            activities.append([activity_path, file_path, sheet_names, unique_excel_name])
                 except ET.ParseError as e:
                     print(f"Error parsing file: {file_path}, Error: {e}")
                     continue
