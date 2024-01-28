@@ -11,7 +11,11 @@ from effects import FadingMessage
 
 class Recorder:
 
-    def __init__(self):
+    def __init__(self, activity_name, activity_description, activity_path):
+        
+        self.activity_name = activity_name
+        self.activity_description = activity_description
+        self.activity_path = activity_path
 
         self.root = tk.Tk()
         self.root.title("Recorder")
@@ -355,7 +359,7 @@ class Recorder:
         self.delete_button.pack_forget()
         self.update_steps("Stop Recording")
         self.disable_dropdown_options()
-        response = stop_and_show_records()
+        response = stop_and_show_records(self.activity_name, self.activity_description, self.activity_path)
         if response:
             self.start_button.pack_forget()
             self.run_button.pack(side=tk.LEFT, padx=5)
@@ -879,7 +883,7 @@ class Recorder:
         else:
             return None  # Return None if the Listbox is empty
     
-    
+
     def run(self):
         self.root.mainloop()
 

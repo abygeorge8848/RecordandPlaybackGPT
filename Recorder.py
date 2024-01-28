@@ -187,7 +187,7 @@ def create_xpath2():
 
 
 # Modify stop_and_show_records to call GPT-4 script
-def stop_and_show_records():
+def stop_and_show_records(activity_name, activity_description, activity_path):
 
     global driver, last_time, paused_time_total, stop_thread_flag
     if driver:
@@ -460,7 +460,7 @@ def stop_and_show_records():
 
         completed_code= ""
         
-        PAF_ACTIVITY = reformat_paf_activity(event_queue)
+        PAF_ACTIVITY = reformat_paf_activity(event_queue, activity_name, activity_description)
         completed_code = PAF_ACTIVITY["PAF_SCRIPT"]
         activity_id = PAF_ACTIVITY["activity_id"]
         
@@ -471,7 +471,8 @@ def stop_and_show_records():
         flow_id = FLOWS["flow_id"]
 
         flow_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject/sample_xml/flow.xml"
-        activity_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject/sample_xml/activity.xml"
+        if not activity_path:
+            activity_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject/sample_xml/activity.xml"
         init_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject/src/init.properties"
 
         completed_code = "<activities>\n\n" + completed_code + "\n\n</activities>"

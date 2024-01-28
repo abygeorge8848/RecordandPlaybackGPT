@@ -44,10 +44,10 @@ def run_flask_app():
     print("The flask application has been successfully started!")
     serve(app, host='0.0.0.0', port=9005)
 
-def run_app():
+def run_app(activity_name, activity_description, activity_path):
     flask_thread = threading.Thread(target=run_flask_app)
     flask_thread.start()
-    RecorderInstance = Recorder()
+    RecorderInstance = Recorder(activity_name, activity_description, activity_path)
     RecorderInstance.run()
     
 

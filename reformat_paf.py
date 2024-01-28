@@ -2,7 +2,7 @@ from name_generator import NameGenerator
 #from gpt import generate_pass_message, generate_fail_message
 
 
-def reformat_paf_activity(event_queue):
+def reformat_paf_activity(event_queue, activity_name, activity_description):
     PAF_SCRIPT = ""
     VALIDATION_SCRIPT = "\n"
     name_engine = NameGenerator()
@@ -146,8 +146,8 @@ def reformat_paf_activity(event_queue):
 
             
     
-
-    activity_name = name_engine.get_activity_name()
+    if not activity_name:
+        activity_name = name_engine.get_activity_name()
     
     PAF_SCRIPT = f'<activity id="{activity_name}">\n' + PAF_SCRIPT + '</activity>' + VALIDATION_SCRIPT
     return {"PAF_SCRIPT" : PAF_SCRIPT, "activity_id" : activity_name}

@@ -25,7 +25,6 @@ class TestcaseManager:
         self.style = ttk.Style()
         self.style.theme_use('clam')
 
-
         # Create navbar frame
         self.navbar_frame = tk.Frame(self.root)
         self.navbar_frame.pack(padx=12, pady=2, fill=tk.X)
@@ -199,7 +198,7 @@ class TestcaseManager:
         # Allow only .properties files to be selected
         filename = filedialog.askopenfilename(filetypes=[("Properties files", "*.properties")])
         if filename:
-            if filename.endswith('.properties') and filename.startswith('init'):
+            if filename.endswith('.properties'):
                 entry.delete(0, tk.END)
                 entry.insert(0, filename)
             else:
@@ -238,13 +237,13 @@ class TestcaseManager:
             self.chosen_flows_tree.insert('', tk.END, values=(full_text,), tags=('oddrow',))
             self.update_chosen_flows()
 
-    def style_edit_column(tree):
+    def style_edit_column(self, tree):
         tree.tag_configure('editTag', background='lightblue', font=('Arial', 10, 'bold'))  # Set background color and bold font
 
-    def stripe_rows(tree):
+    def stripe_rows(self, tree):
         tree.tag_configure('oddrow', background='#f0f0f0')
 
-    def bordered_edit_text():
+    def bordered_edit_text(self):
         return '▌Edit▐'
 
     def edit_activity(activity_name):

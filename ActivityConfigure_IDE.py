@@ -41,14 +41,14 @@ class ActivityConfig():
     def choose_file(self):
         file_path = filedialog.askopenfilename()
         self.file_path_entry.delete(0, tk.END)
-        self.file_path_entry.insert(0, self.file_path)
+        self.file_path_entry.insert(0, file_path)
 
     def start_recorder(self):
         activity_name = self.activity_name_entry.get()
         activity_description = self.activity_description_entry.get()
         file_path = self.file_path_entry.get()
         self.root.withdraw()
-        run_app()
+        run_app(activity_name, activity_description, file_path)
 
     def run(self):
         self.root.mainloop()

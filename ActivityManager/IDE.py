@@ -11,7 +11,10 @@ current_file_path = Path(__file__).resolve()
 parent_dir = current_file_path.parent.parent
 sys.path.append(str(parent_dir))
 from ActivityConfigure_IDE import ActivityConfig
-
+current_dir = Path(__file__).resolve().parent
+root_dir = current_dir.parent
+sys.path.insert(0, str(root_dir))
+#from TestcaseManager.IDE_TM import TestcaseManager
 
 project_path = "C:\\Users\\u1138322\\PAF\\ProjectContainer\\SampleProject"
 
@@ -222,6 +225,9 @@ class ActivityManager():
 
         print("Chosen Activities with Sheets:", activities_with_sheets)
         insert_flow(flow_name, flow_desc, flow_path, activities_with_sheets)
+        self.root.withdraw()
+        #TestcaseManagerInstance = TestcaseManager()
+        #TestcaseManagerInstance.run()
 
 
 
