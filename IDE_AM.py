@@ -6,13 +6,15 @@ from ActivityManager.xml_parsingAM import insert_recorder_id, insert_flow, refac
 from ActivityManager.excelAM import create_excel, extract_data_and_write_to_excel, create_duplicates
 import os
 from ActivityConfigure_IDE import ActivityConfig
-from IDE_TM import TestcaseManager
+
 
 project_path = "C:\\Users\\u1138322\\PAF\\ProjectContainer\\SampleProject"
 
 class ActivityManager():
 
-    def __init__(self):
+    def __init__(self, controller):
+        super().__init__()
+        self.controller = controller
         # Create the main window
         self.root = tk.Tk()
         self.root.title("Activity Manager")
@@ -181,9 +183,7 @@ class ActivityManager():
 
 
     def create_activity(self):
-        self.root.withdraw()
-        ActivityConfigInstance = ActivityConfig()
-        ActivityConfigInstance.run()
+        self.controller.show_activity_config()
 
     def add_flow(self):
         activities_with_sheets = []
@@ -217,9 +217,8 @@ class ActivityManager():
 
         print("Chosen Activities with Sheets:", activities_with_sheets)
         insert_flow(flow_name, flow_desc, flow_path, activities_with_sheets)
-        self.root.withdraw()
-        TestcaseManagerInstance = TestcaseManager()
-        TestcaseManagerInstance.run()
+        self.controller.show_testcase_manager()
+
 
 
 
@@ -410,7 +409,10 @@ class ActivityManager():
         self.choose_folder(self.activity_entry)
 
     def run(self):
-        self.root.mainloop()
+        self.root.deiconify()
+
+    def withdraw(self):
+        self.root.withdraw()
 
 
 

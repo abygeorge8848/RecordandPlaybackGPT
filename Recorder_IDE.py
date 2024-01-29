@@ -11,7 +11,9 @@ from effects import FadingMessage
 
 class Recorder:
 
-    def __init__(self, activity_name, activity_description, activity_path):
+    def __init__(self, activity_name, activity_description, activity_path, controller):
+        super().__init__()
+        self.controller = controller
         
         self.activity_name = activity_name
         self.activity_description = activity_description

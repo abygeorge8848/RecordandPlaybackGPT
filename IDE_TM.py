@@ -4,12 +4,7 @@ from TestcaseManager.project_interaction import pull_activities, write_init
 from TestcaseManager.effectsTM import create_tooltip
 from TestcaseManager.RunPAFTM import run_file, report_open
 import os
-import sys
-from pathlib import Path
-current_dir = Path(__file__).resolve().parent
-parent_dir = current_dir.parent
-sys.path.insert(0, str(parent_dir))
-from IDE_AM import ActivityManager
+
 
 
 
@@ -18,7 +13,9 @@ project_path = "C:/Users/u1138322/PAF/ProjectContainer/SampleProject"
 
 class TestcaseManager:
 
-    def __init__(self):
+    def __init__(self, controller):
+        super().__init__()
+        self.controller = controller
         # Create the main window
         self.root = tk.Tk()
         self.root.title("Flow Manager")
@@ -156,9 +153,7 @@ class TestcaseManager:
 
 
     def create_flow(self):
-        self.root.withdraw()
-        activity_manager_instance = ActivityManager()
-        activity_manager_instance.run()
+        self.controller.show_activity_manager()
 
 
     def run_suite(self):
@@ -258,8 +253,10 @@ class TestcaseManager:
 
 
     def run(self):
-        # Run the application
-        self.root.mainloop()
+        self.root.deiconify()
+
+    def withdraw(self):
+        self.root.withdraw()
 
 
 if __name__ == "__main__":

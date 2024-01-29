@@ -6,7 +6,9 @@ from flaskapp import run_app
 
 class ActivityConfig():
     
-    def __init__(self):
+    def __init__(self, controller):
+        super().__init__()
+        self.controller = controller
         self.root = tk.Tk()
         self.root.title('Activity Configuration')
 
@@ -47,11 +49,13 @@ class ActivityConfig():
         activity_name = self.activity_name_entry.get()
         activity_description = self.activity_description_entry.get()
         file_path = self.file_path_entry.get()
-        self.root.withdraw()
-        run_app(activity_name, activity_description, file_path)
+        self.controller.start_recorder(activity_name, activity_description, file_path)
 
     def run(self):
-        self.root.mainloop()
+        self.root.deiconify()
+
+    def withdraw(self):
+        self.root.withdraw()
 
 
 
