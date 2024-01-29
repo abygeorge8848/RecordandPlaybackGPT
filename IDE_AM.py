@@ -5,16 +5,8 @@ from ActivityManager.effectsAM import create_tooltip
 from ActivityManager.xml_parsingAM import insert_recorder_id, insert_flow, refactor_for_excel
 from ActivityManager.excelAM import create_excel, extract_data_and_write_to_excel, create_duplicates
 import os
-import sys
-from pathlib import Path
-current_file_path = Path(__file__).resolve()
-parent_dir = current_file_path.parent.parent
-sys.path.append(str(parent_dir))
 from ActivityConfigure_IDE import ActivityConfig
-current_dir = Path(__file__).resolve().parent
-root_dir = current_dir.parent
-sys.path.insert(0, str(root_dir))
-#from TestcaseManager.IDE_TM import TestcaseManager
+from IDE_TM import TestcaseManager
 
 project_path = "C:\\Users\\u1138322\\PAF\\ProjectContainer\\SampleProject"
 
@@ -226,8 +218,8 @@ class ActivityManager():
         print("Chosen Activities with Sheets:", activities_with_sheets)
         insert_flow(flow_name, flow_desc, flow_path, activities_with_sheets)
         self.root.withdraw()
-        #TestcaseManagerInstance = TestcaseManager()
-        #TestcaseManagerInstance.run()
+        TestcaseManagerInstance = TestcaseManager()
+        TestcaseManagerInstance.run()
 
 
 

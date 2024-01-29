@@ -1,15 +1,15 @@
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox, Toplevel, Label, Entry, Button
-from project_interaction import pull_activities, write_init
-from effectsTM import create_tooltip
-from RunPAFTM import run_file, report_open
+from TestcaseManager.project_interaction import pull_activities, write_init
+from TestcaseManager.effectsTM import create_tooltip
+from TestcaseManager.RunPAFTM import run_file, report_open
 import os
 import sys
 from pathlib import Path
 current_dir = Path(__file__).resolve().parent
 parent_dir = current_dir.parent
 sys.path.insert(0, str(parent_dir))
-from ActivityManager.IDE import ActivityManager
+from IDE_AM import ActivityManager
 
 
 
