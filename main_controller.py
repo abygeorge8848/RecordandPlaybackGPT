@@ -23,10 +23,11 @@ class MainController:
         self.hide_all_guis()
         self.activity_config_instance.run()
 
-    def start_recorder(self, activity_description, activity_path):
+    def start_recorder(self, activity_name, activity_description, activity_path):
         # Create Recorder instance when you have the necessary data
         if not self.recorder_instance:
-            self.recorder_instance = Recorder(activity_description, activity_path, self)
+            # Ensure the order of arguments matches the Recorder class's __init__ method
+            self.recorder_instance = Recorder(activity_name, activity_description, activity_path, self)
         self.show_recorder()
 
     def show_recorder(self):

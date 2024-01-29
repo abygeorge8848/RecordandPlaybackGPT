@@ -13,11 +13,10 @@ class Recorder:
 
     def __init__(self, activity_name, activity_description, activity_path, controller):
         super().__init__()
-        self.controller = controller
-        
         self.activity_name = activity_name
         self.activity_description = activity_description
         self.activity_path = activity_path
+        self.controller = controller
 
         self.root = tk.Tk()
         self.root.title("Recorder")
@@ -26,9 +25,11 @@ class Recorder:
         self.nav_bar = tk.Frame(self.root)
         self.nav_bar.pack(side=tk.TOP, fill=tk.X)
 
-        url_entry = tk.Entry(self.nav_bar)
-        url_entry.insert(0, 'http://')  # You can set a default or placeholder text if needed
-        url_entry.pack(side=tk.LEFT, padx=5)
+        self.exit_button = tk.Button(self.nav_bar, text="Exit", command=self.exit)
+        self.exit_button.pack(side=tk.LEFT, padx=5)
+        self.url_entry = tk.Entry(self.nav_bar)
+        self.url_entry.insert(0, 'http://')  # You can set a default or placeholder text if needed
+        self.url_entry.pack(side=tk.LEFT, padx=5)
 
         self.start_button = tk.Button(self.nav_bar, text="Start", command=self.start_record)
         self.run_button = tk.Button(self.nav_bar, text="Run Script", command=self.run_script)
@@ -885,10 +886,14 @@ class Recorder:
         else:
             return None  # Return None if the Listbox is empty
     
+    def exit(self):
+        self.controller.show_activity_manager()
 
     def run(self):
-        self.root.mainloop()
+        self.root.deiconify()
 
+    def withdraw(self):
+        self.root.withdraw()
 
 if __name__ == "__main__":
     RecorderInstance = Recorder()
