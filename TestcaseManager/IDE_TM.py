@@ -246,12 +246,12 @@ class TestcaseManager:
     def bordered_edit_text(self):
         return '▌Edit▐'
 
-    def edit_activity(activity_name):
+    def edit_activity(self, activity_name):
         # Implementation of edit_activity
         # Use activity_name as needed
         print(f"Edit activity: {activity_name}")
 
-    def edit_activity(activity_name, tree):
+    def edit_activity(self, activity_name, tree):
         # Implementation of edit_activity
         # Use both activity_name and tree as needed
         print(f"Edit activity: {activity_name} from {tree}")

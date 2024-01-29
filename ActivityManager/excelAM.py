@@ -41,22 +41,16 @@ def is_legitimate_path(path):
 
 
 
-import xml.etree.ElementTree as ET
-import pandas as pd
-
 def extract_data_and_write_to_excel(data, base_excel_path):
     print(f"Writing the following activities {data} to {base_excel_path}")
     # List to store the extracted data
     extracted_data = []
-
     for activity_info in data:
         activity_id = activity_info['activity']
         file_path = activity_info['path']
-
         # Parse the XML file
         tree = ET.parse(file_path)
         root = tree.getroot()
-
         # Find the <activity> element with the specified id
         activity = root.find(f".//activity[@id='{activity_id}']")
         
@@ -95,10 +89,18 @@ def extract_data_and_write_to_excel(data, base_excel_path):
                                     }
                                     extracted_data.append(validate_data)
 
-    # Convert the list of dictionaries to a DataFrame and write to Excel
-    df = pd.DataFrame(extracted_data)
-    df.to_excel(base_excel_path, index=False)
-    print(f"Data written to Excel at {base_excel_path}")
+    try:
+        # Convert the list of dictionaries to a DataFrame and write to Excel
+        df = pd.DataFrame(extracted_data)
+        # Write to Excel using a context manager to ensure the file is properly closed after writing
+        with pd.ExcelWriter(base_excel_path, engine='openpyxl', mode='w') as writer:
+            df.to_excel(writer, index=False)
+        print(f"Data written to Excel at {base_excel_path}")
+
+    except Exception as e:
+        print(f"An error occurred while writing to the Excel file: {e}")
+
+    return 1
 
 
 

@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk, messagebox, Toplevel, Label, Entry, Button
 from ActivityManager.pull_filesAM import pull_activities
 from ActivityManager.effectsAM import create_tooltip
-from ActivityManager.xml_parsingAM import insert_recorder_id, insert_flow
+from ActivityManager.xml_parsingAM import insert_recorder_id, insert_flow, refactor_for_excel
 from ActivityManager.excelAM import create_excel, extract_data_and_write_to_excel, create_duplicates
 import os
 import sys
@@ -343,8 +343,12 @@ class ActivityManager():
             print(f"The unique excel name is : {unique_excel_name}")
             base_excel_path = create_excel(unique_excel_name, base_excel_path)
             insert_recorder_id([{'activity': activity_name, 'path': path}])
-            extract_data_and_write_to_excel([{'activity': activity_name, 'path': path}], base_excel_path)
-
+            excelComplete = extract_data_and_write_to_excel([{'activity': activity_name, 'path': path}], base_excel_path)
+            print(f"\n\n\n Base Excel Path is : {base_excel_path} \n\n\n")
+            print(f"\n\n\n Path is : {path} \n\n\n")
+            print(f"\n\n\n Activity name is : {activity_name} \n\n\n")
+            if excelComplete:
+                refactor_for_excel(base_excel_path, path, activity_name)
 
         else:
             # If no activity is selected, show an alert

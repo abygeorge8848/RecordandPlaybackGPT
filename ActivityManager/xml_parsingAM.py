@@ -1,5 +1,12 @@
-import xml.etree.ElementTree as ET
-import os
+#import xml.etree.ElementTree as ET
+from lxml import etree as ET
+import sys
+import openpyxl
+from pathlib import Path
+current_file_path = Path(__file__).resolve()
+parent_dir = current_file_path.parent.parent
+sys.path.append(str(parent_dir))
+from name_generator import NameGenerator
 
 
 
@@ -56,10 +63,9 @@ def insert_flow(flow_name, flow_desc, flow_path, activities_with_sheets):
     try:
         with open(flow_path, 'r') as file:
             lines = file.readlines()
-        
+
         for i, line in enumerate(lines):
             if '<flows>' in line:
-                # Insert a new line and the provided text after '<flows>'
                 lines.insert(i + 1, '\n')
                 lines.insert(i + 2, f'\t<flow id="{flow_name}" desc="{flow_desc}" name="{flow_name} : {flow_desc}" summary="{flow_desc}">\n')
                 j = 0
@@ -73,9 +79,95 @@ def insert_flow(flow_name, flow_desc, flow_path, activities_with_sheets):
                 lines.insert(i+3+j, f'\t</flow>\n')
                 break  # Exit the loop after inserting
         
-        # Write the modified content back to the file
         with open(flow_path, 'w') as file:
             file.writelines(lines)
             
     except Exception as e:
         print(f"An error occurred: {e}")
+
+
+def refactor_for_excel(base_excel_path, activity_path, activity_id):
+    nameGenEngine = NameGenerator()
+    
+    # Load the Excel workbook and select the active sheet
+    workbook = openpyxl.load_workbook(base_excel_path)
+    sheet = workbook.active
+
+    # Print out the entire content of the Excel sheet for debugging
+    print("Excel Sheet Content:")
+    for row in sheet.iter_rows(values_only=True):
+        print(row)
+
+    # Find the column number for 'recorderId'
+    recorder_id_col = None
+    for col in sheet.iter_cols(max_row=1, values_only=True):
+        if 'recorderId' in col:
+            recorder_id_col = col.index('recorderId') + 1  # +1 because Excel is 1-indexed
+            break
+
+    if recorder_id_col is None:
+        raise ValueError("Column 'recorderId' not found in the Excel sheet.")
+
+    # Create a dictionary to map recorderId to row number and column letters for fast lookup
+    recorder_id_map = {}
+    header_row = next(sheet.iter_rows(min_row=1, max_row=1, values_only=True))  # Get the header row
+    recorder_id_index = header_row.index('recorderId')  # Find the index for the 'recorderId' column
+    for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):  # Starting from row 2, as row 1 is the header
+        recorder_id = str(row[recorder_id_index]).strip().lower()  # Use the correct index for recorderId, strip whitespaces, and convert to lowercase
+        if recorder_id:  # Ensure recorder_id is not empty
+            recorder_id_map[recorder_id] = {
+                'row': idx,  # The actual row number in the sheet
+                'columns': {header: col_idx + 1 for col_idx, header in enumerate(header_row)}  # Map column names to indices
+            }
+
+    print("Recorder IDs found in Excel and their corresponding rows:")
+    for recorder_id, info in recorder_id_map.items():
+        print(recorder_id, '->', info['row'])
+
+    # Parse the XML file
+    tree = ET.parse(activity_path)
+    root = tree.getroot()
+    
+    # Find the activity with the specified activity_id
+    activity = root.find(f".//activity[@id='{activity_id}']")
+    
+    if activity is not None:
+        # Iterate over all elements with a 'recorderId' attribute within the activity
+        for element in activity.findall(".//*[@recorderId]"):
+            recorder_id_xml = element.get('recorderId').strip().lower()  # Strip whitespaces and convert to lowercase
+            print(f"Processing element with recorderId: {recorder_id_xml}")  # Debug print
+
+            # Check if this recorderId is present in the Excel file
+            if recorder_id_xml in recorder_id_map:
+                print(f"Found matching recorderId in Excel: {recorder_id_xml}")  # Debug print
+                row_info = recorder_id_map[recorder_id_xml]
+                
+                # Iterate over the attributes of the XML tag
+                for attr_name, attr_value in element.attrib.items():
+                    if attr_name != 'recorderId' and attr_name in row_info['columns']:
+                        print(f"Refactoring attribute: {attr_name}")  # Debug print
+                        
+                        # Generate a unique name for the excel variable
+                        unique_name = nameGenEngine.get_excel_variable_name()
+                        
+                        # Create an 'excel' tag with the row, col, and variable attributes
+                        excel_tag = ET.Element('excel')
+                        excel_tag.set('row', str(row_info['row']))
+                        excel_tag.set('col', str(row_info['columns'][attr_name]))
+                        excel_tag.set('variable', unique_name)
+                        
+                        # Insert the excel tag right above the current tag
+                        parent_element = element.getparent()
+                        if parent_element is not None:
+                            parent_element.insert(parent_element.index(element), excel_tag)
+                            print(f"Inserted 'excel' tag for {attr_name} before {element.tag}")  # Debug print
+                        else:
+                            print(f"Parent element not found for {element.tag}")  # Debug print
+                        
+                        # Replace the attribute value with the variable placeholder
+                        element.set(attr_name, f"${{{unique_name}}}")
+            else:
+                print(f"No matching recorderId found in Excel for: {recorder_id_xml}")  # Debug print
+    
+    # Save the modified XML back to the file
+    tree.write(activity_path, encoding='utf-8', xml_declaration=True)

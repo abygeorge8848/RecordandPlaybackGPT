@@ -21,6 +21,7 @@ def pull_activities(file_path):
 
 
 def write_init(init_path, init_url, flow_path, flow_ids):
+    flow_path = flow_path.replace('\\', '/')
     try:
         with open(init_path, 'r') as file:
             lines = file.readlines()
